@@ -1,0 +1,165 @@
+from uuid import UUID, uuid4
+from typing import List
+from sqlalchemy import (
+    String, ForeignKey, Text, DateTime, Enum, Float, CheckConstraint, UniqueConstraint
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+import enum
+from datetime import datetime, timezone
+
+from ..models.meta import Base
+
+
+class UserRoleEnum(enum.Enum):
+    """User roles."""
+    manager = "manager"
+    employee = "employee"
+
+
+class TaskStatusEnum(enum.Enum):
+    """Task statuses."""
+    pending = "pending"
+    in_progress = "in_progress"
+    done = "done"
+
+
+class UserRole(Base):
+    """
+    Association table for user roles.
+    This allows a user to have multiple roles.
+    """
+    __tablename__ = 'user_roles'
+    
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    role: Mapped[UserRoleEnum] = mapped_column(Enum(UserRoleEnum), nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
+    
+    user: Mapped['User'] = relationship('User', back_populates='roles')
+    
+
+class User(Base):
+    """
+    User model.
+
+    Attributes:
+        id (int): Unique identifier.
+        given_name (str): Given name, non-null, max 50 chars.
+        family_name (str): Family name, non-null, max 100 chars.
+        username (str): Unique username, non-null, max 100 chars.
+        password_hash (str): Password hash, non-null, max 255 chars.
+        roles (List[UserRole]): List of roles associated with the user.
+    """
+    __tablename__ = 'users'
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    given_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    family_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    roles: Mapped[List['UserRole']] = relationship('UserRole', back_populates='user', cascade="all, delete-orphan")    
+    manager_courses: Mapped[List['Course']] = relationship('Course', back_populates='manager', cascade="all, delete-orphan")
+    employee_courses: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='employee', cascade="all, delete-orphan")
+    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='user', cascade="all, delete-orphan")
+
+    # def is_manager(self):
+    #     return any(role.role == UserRole.manager for role in self.roles)
+
+    # def is_employee(self):
+    #     return any(role.role == UserRole.employee for role in self.roles)
+
+
+class Course(Base):
+    """
+    Course model.
+
+    Attributes:
+        id (int): Primary key.
+        title (str): Course title, non-null, max 200 chars.
+        description (str): Optional text description.
+        creator_id (int): Foreign key to users.id, non-null.
+        progress (float): Progress in range 0.0 to 100.0.
+    """
+    __tablename__ = 'courses'
+    
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text)
+    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    manager_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+
+    manager: Mapped['User'] = relationship('User', back_populates='manager_courses')
+    tasks: Mapped[List['Task']] = relationship('Task', back_populates='course', cascade="all, delete-orphan")
+    course_employees: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='course', cascade="all, delete-orphan")
+
+
+class CourseEmployee(Base):
+    """
+    Association table between Course and User (employees).
+    """
+    __tablename__ = 'course_employees'
+
+    __table_args__ = (
+        UniqueConstraint('course_id', 'user_id', name='uq_course_employee'),
+        CheckConstraint('progress >= 0.0 AND progress <= 100.0', name='chk_course_progress_range'),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    progress: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"))
+    employee_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"))
+
+    course: Mapped['Course'] = relationship('Course', back_populates="course_employees")
+    employee: Mapped['User'] = relationship('User', back_populates="employee_courses")
+
+
+class Task(Base):
+    """
+    Task model.
+
+    Attributes:
+        id (int): Primary key.
+        course_id (int): Foreign key to courses.id, non-null.
+        title (str): Task title, non-null, max 200 chars.
+        description (str): Optional text description.
+        deadline (datetime): Optional deadline.
+        status (TaskStatus): Enum, non-null.
+        created_at (datetime): Creation timestamp, non-null.
+    """
+    __tablename__ = 'tasks'
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text)
+    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[TaskStatusEnum] = mapped_column(Enum(TaskStatusEnum), nullable=False, default=TaskStatusEnum.pending)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"), nullable=False)
+
+    course: Mapped['Course'] = relationship('Course', back_populates='tasks')
+    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='task', cascade="all, delete-orphan")
+
+
+class Comment(Base):
+    """
+    Comment model.
+
+    Attributes:
+        id (int): Primary key.
+        task_id (int): Foreign key to tasks.id, non-null.
+        user_id (int): Foreign key to users.id, non-null.
+        text (str): Comment text, non-null.
+        created_at (datetime): Creation timestamp, non-null.
+    """
+    __tablename__ = 'comments'
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    text = Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+
+    task: Mapped['Comment'] = relationship('Comment', back_populates='comments')
+    user: Mapped['User'] = relationship('User', back_populates='comments')
