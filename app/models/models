@@ -19,17 +19,30 @@ class UserRoleEnum(enum.Enum):
 class TaskStatusEnum(enum.Enum):
     """Task statuses."""
     pending = "pending"
-    in_progress = "in_progress"
+    incorrect = "incorrect"
     done = "done"
+
+
+class ContentTypeEnum(enum.Enum):
+    """Types of course content."""
+    task = "task"
+    theory = "theory"
 
 
 class UserRole(Base):
     """
-    Association table for user roles.
-    This allows a user to have multiple roles.
+    The model for the association between users and their roles in the system.
+
+    Attributes:
+        id (UUID): The unique identifier for the user role record (primary key).
+        role (UserRoleEnum): The role of the user, which can be 'manager' or 'employee'.
+        user_id (UUID): A foreign key referencing the users table, indicating the user to whom this role is assigned.
+
+    Relationships:
+        user (User): A relationship with the user to whom this role belongs.
     """
     __tablename__ = 'user_roles'
-    
+
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     role: Mapped[UserRoleEnum] = mapped_column(Enum(UserRoleEnum), nullable=False)
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
@@ -39,15 +52,20 @@ class UserRole(Base):
 
 class User(Base):
     """
-    User model.
+    The model for users in the system.
 
     Attributes:
-        id (int): Unique identifier.
-        given_name (str): Given name, non-null, max 50 chars.
-        family_name (str): Family name, non-null, max 100 chars.
-        username (str): Unique username, non-null, max 100 chars.
-        password_hash (str): Password hash, non-null, max 255 chars.
-        roles (List[UserRole]): List of roles associated with the user.
+        id (UUID): The unique identifier for the user (primary key).
+        given_name (str): The user's first name, non-null, max 50 chars.
+        family_name (str): The user's last name, non-null, max 100 chars.
+        username (str): The user's unique username, non-null, max 100 chars.
+        password_hash (str): The hashed password of the user, non-null, max 255 chars.
+
+    Relationships:
+        roles (List[UserRole]): A relationship with the UserRole model, indicating the roles assigned to the user.
+        manager_courses (List[Course]): A relationship with the Course model, indicating the courses managed by the user.
+        employee_courses (List[CourseEmployee]): A relationship with the CourseEmployee model, indicating the courses assigned to the user.
+        comments (List[Comment]): A relationship with the Comment model, indicating the comments made by the user.
     """
     __tablename__ = 'users'
 
@@ -57,7 +75,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    roles: Mapped[List['UserRole']] = relationship('UserRole', back_populates='user', cascade="all, delete-orphan")    
+    roles: Mapped[List['UserRole']] = relationship('UserRole', back_populates='user', cascade="all, delete-orphan")
     manager_courses: Mapped[List['Course']] = relationship('Course', back_populates='manager', cascade="all, delete-orphan")
     employee_courses: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='employee', cascade="all, delete-orphan")
     comments: Mapped[List['Comment']] = relationship('Comment', back_populates='user', cascade="all, delete-orphan")
@@ -71,14 +89,19 @@ class User(Base):
 
 class Course(Base):
     """
-    Course model.
+    The model for courses in the system.
 
     Attributes:
-        id (int): Primary key.
-        title (str): Course title, non-null, max 200 chars.
-        description (str): Optional text description.
-        creator_id (int): Foreign key to users.id, non-null.
-        progress (float): Progress in range 0.0 to 100.0.
+        id (UUID): The unique identifier for the course (primary key).
+        title (str): The title of the course, non-null, max 200 chars.
+        description (str): The description of the course, optional.
+        deadline (datetime): The deadline for the course, optional.
+        created_at (datetime): The timestamp when the course was created, non-null.
+        manager_id (UUID): A foreign key referencing the users table, indicating the manager responsible for the course.
+
+    Relationships:
+        manager (User): A relationship with the User model, indicating the manager of the course.
+        course_contents (List[CourseContent]): A relationship with the CourseContent model, indicating the contents of the course.
     """
     __tablename__ = 'courses'
     
@@ -90,13 +113,23 @@ class Course(Base):
     manager_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
 
     manager: Mapped['User'] = relationship('User', back_populates='manager_courses')
-    tasks: Mapped[List['Task']] = relationship('Task', back_populates='course', cascade="all, delete-orphan")
-    course_employees: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='course', cascade="all, delete-orphan")
+    course_contents: Mapped[List['CourseContent']] = relationship('CourseContent', back_populates='course', cascade="all, delete-orphan")
 
 
 class CourseEmployee(Base):
     """
-    Association table between Course and User (employees).
+    The model for the association between users (employees) and courses.
+
+    Attributes:
+        id (UUID): The unique identifier for the course employee record (primary key).
+        progress (float): The employee's progress in the course (range 0.0 to 100.0).
+        assigned_at (datetime): The timestamp when the employee was assigned to the course.
+        course_id (UUID): A foreign key referencing the courses table, indicating the course the employee is assigned to.
+        employee_id (UUID): A foreign key referencing the users table, indicating the employee.
+
+    Relationships:
+        course (Course): A relationship with the Course model, indicating the course the employee is associated with.
+        employee (User): A relationship with the User model, indicating the employee assigned to the course.
     """
     __tablename__ = 'course_employees'
 
@@ -115,51 +148,93 @@ class CourseEmployee(Base):
     employee: Mapped['User'] = relationship('User', back_populates="employee_courses")
 
 
+class CourseContent(Base):
+    """
+    Course content model (task, theory).
+    
+    This model can store both tasks and theory associated with a course.
+    """
+    __tablename__ = 'course_contents'
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    content_type: Mapped[ContentTypeEnum] = mapped_column(Enum(ContentTypeEnum), nullable=False)
+    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[TaskStatusEnum] = mapped_column(Enum(TaskStatusEnum), nullable=False, default=TaskStatusEnum.pending)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"))
+    task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"))
+    theory_id: Mapped[UUID] = mapped_column(ForeignKey('theories.id', ondelete="CASCADE"))
+    
+    course: Mapped['Course'] = relationship('Course', back_populates='course_contents')
+    task: Mapped['Task'] = relationship('Task', back_populates='course_contents', uselist=False)
+    theory: Mapped['Theory'] = relationship('Theory', back_populates='course_contents', uselist=False)
+    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='course_content', cascade="all, delete-orphan")
+
+
 class Task(Base):
     """
-    Task model.
+    The model for tasks within a course.
 
     Attributes:
-        id (int): Primary key.
-        course_id (int): Foreign key to courses.id, non-null.
-        title (str): Task title, non-null, max 200 chars.
-        description (str): Optional text description.
-        deadline (datetime): Optional deadline.
-        status (TaskStatus): Enum, non-null.
-        created_at (datetime): Creation timestamp, non-null.
+        id (UUID): The unique identifier for the task (primary key).
+        question (str): The question or prompt for the task, non-null, max 200 chars.
+        answer (str): The answer for the task, non-null, max 200 chars.
+
+    Relationships:
+        course_contents (List[CourseContent]): A relationship with the CourseContent model, indicating that the task is part of a course's content.
     """
     __tablename__ = 'tasks'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    title: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[str] = mapped_column(Text)
-    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    status: Mapped[TaskStatusEnum] = mapped_column(Enum(TaskStatusEnum), nullable=False, default=TaskStatusEnum.pending)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
-    course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"), nullable=False)
+    question: Mapped[str] = mapped_column(String(200), nullable=False)
+    answer: Mapped[str] = mapped_column(String(200), nullable=False)
+    
+    course_contents: Mapped[List['CourseContent']] = relationship('CourseContent', back_populates='task')
 
-    course: Mapped['Course'] = relationship('Course', back_populates='tasks')
-    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='task', cascade="all, delete-orphan")
+
+class Theory(Base):
+    """
+    The model for theoretical content within a course.
+
+    Attributes:
+        id (UUID): The unique identifier for the theory (primary key).
+        title (str): The title of the theory, non-null, max 200 chars.
+        description (str): The text description of the theory, non-null.
+
+    Relationships:
+        course_contents (List[CourseContent]): A relationship with the CourseContent model, indicating that the theory is part of a course's content.
+    """
+    __tablename__ = 'theories'
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    
+    course_contents: Mapped[List['CourseContent']] = relationship('CourseContent', back_populates='theory')
 
 
 class Comment(Base):
     """
-    Comment model.
+    The model for comments on course content (tasks or theories).
 
     Attributes:
-        id (int): Primary key.
-        task_id (int): Foreign key to tasks.id, non-null.
-        user_id (int): Foreign key to users.id, non-null.
-        text (str): Comment text, non-null.
-        created_at (datetime): Creation timestamp, non-null.
+        id (UUID): The unique identifier for the comment (primary key).
+        text (str): The text of the comment, non-null.
+        created_at (datetime): The timestamp when the comment was created.
+        course_content_id (UUID): A foreign key referencing the course_contents table, indicating which content the comment belongs to.
+        user_id (UUID): A foreign key referencing the users table, indicating the user who wrote the comment.
+
+    Relationships:
+        course_content (CourseContent): A relationship with the CourseContent model, indicating which content the comment is associated with.
+        user (User): A relationship with the User model, indicating the user who wrote the comment.
     """
     __tablename__ = 'comments'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    text = Mapped[str] = mapped_column(Text, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
-    task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"), nullable=False)
+    course_content_id: Mapped[UUID] = mapped_column(ForeignKey('course_contents.id', ondelete="CASCADE"), nullable=False)
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
 
-    task: Mapped['Comment'] = relationship('Comment', back_populates='comments')
+    course_content: Mapped['CourseContent'] = relationship('CourseContent', back_populates='comments')
     user: Mapped['User'] = relationship('User', back_populates='comments')
