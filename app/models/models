@@ -150,9 +150,23 @@ class CourseEmployee(Base):
 
 class CourseContent(Base):
     """
-    Course content model (task, theory).
-    
-    This model can store both tasks and theory associated with a course.
+    Course content model (task, theory). This model can store both tasks and theory associated with a course.
+
+    Attributes:
+        id (UUID): The unique identifier for the course content record (primary key).
+        content_type (ContentTypeEnum): The type of the content (task or theory), which can be associated with the course.
+        deadline (datetime): The deadline for the task (if the content is a task).
+        status (TaskStatusEnum): The status of the task (e.g., 'pending', 'incorrect', 'done').
+        created_at (datetime): The timestamp when the course content record was created.
+        course_id (UUID): A foreign key referencing the courses table, indicating which course this content belongs to.
+        task_id (UUID): A foreign key referencing the tasks table, indicating that this content is related to a task (if it's a task).
+        theory_id (UUID): A foreign key referencing the theories table, indicating that this content is related to a theory.
+
+    Relationships:
+        course (Course): A relationship with the Course model, indicating the course to which this content belongs.
+        task (Task): A relationship with the Task model, indicating that this content represents a task.
+        theory (Theory): A relationship with the Theory model, indicating that this content represents a theory.
+        comments (List[Comment]): A relationship with the Comment model, indicating the comments made on this course content.
     """
     __tablename__ = 'course_contents'
 
