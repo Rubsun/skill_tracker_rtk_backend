@@ -80,12 +80,6 @@ class User(Base):
     employee_courses: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='employee', cascade="all, delete-orphan")
     comments: Mapped[List['Comment']] = relationship('Comment', back_populates='user', cascade="all, delete-orphan")
 
-    # def is_manager(self):
-    #     return any(role.role == UserRole.manager for role in self.roles)
-
-    # def is_employee(self):
-    #     return any(role.role == UserRole.employee for role in self.roles)
-
 
 class Course(Base):
     """
@@ -102,6 +96,7 @@ class Course(Base):
     Relationships:
         manager (User): A relationship with the User model, indicating the manager of the course.
         course_contents (List[CourseContent]): A relationship with the CourseContent model, indicating the contents of the course.
+        course_employees ([List[CourseEmployee]): A relationship with the CourseEmployee model.
     """
     __tablename__ = 'courses'
     
@@ -114,6 +109,7 @@ class Course(Base):
 
     manager: Mapped['User'] = relationship('User', back_populates='manager_courses')
     course_contents: Mapped[List['CourseContent']] = relationship('CourseContent', back_populates='course', cascade="all, delete-orphan")
+    course_employees: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='course')
 
 
 class CourseEmployee(Base):
@@ -134,7 +130,7 @@ class CourseEmployee(Base):
     __tablename__ = 'course_employees'
 
     __table_args__ = (
-        UniqueConstraint('course_id', 'user_id', name='uq_course_employee'),
+        UniqueConstraint('course_id', 'employee_id', name='uq_course_employee'),
         CheckConstraint('progress >= 0.0 AND progress <= 100.0', name='chk_course_progress_range'),
     )
 
@@ -176,8 +172,8 @@ class CourseContent(Base):
     status: Mapped[TaskStatusEnum] = mapped_column(Enum(TaskStatusEnum), nullable=False, default=TaskStatusEnum.pending)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"))
-    task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"))
-    theory_id: Mapped[UUID] = mapped_column(ForeignKey('theories.id', ondelete="CASCADE"))
+    task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"), nullable=True)
+    theory_id: Mapped[UUID] = mapped_column(ForeignKey('theories.id', ondelete="CASCADE"), nullable=True)
     
     course: Mapped['Course'] = relationship('Course', back_populates='course_contents')
     task: Mapped['Task'] = relationship('Task', back_populates='course_contents', uselist=False)
