@@ -11,7 +11,7 @@ from starlette.templating import Jinja2Templates
 from skill_tracker.controllers.metrics import router as metrics_router
 from skill_tracker.controllers.middlewares.metrics_middleware import RequestCountMiddleware
 from skill_tracker.controllers.middlewares.rate_limiting_middleware import RateLimitMiddleware
-from skill_tracker.controllers.notification import router as notifications_router
+from skill_tracker.controllers.task import router as notifications_router
 from skill_tracker.di import setup_di
 
 

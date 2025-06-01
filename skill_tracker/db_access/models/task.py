@@ -6,8 +6,8 @@ from sqlalchemy import UUID, Column, DateTime, Float, String
 from .base import Base
 
 
-class Notification(Base):
-    __tablename__ = "notifications"
+class Task(Base):
+    __tablename__ = "tasks"
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID, nullable=False)
@@ -15,7 +15,3 @@ class Notification(Base):
     text = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
     read_at = Column(DateTime, nullable=True)
-    # Результаты AI-анализа
-    category = Column(String, nullable=True)
-    confidence = Column(Float, nullable=True)
-    processing_status = Column(String, default="pending") # pending, processing, completed, failed

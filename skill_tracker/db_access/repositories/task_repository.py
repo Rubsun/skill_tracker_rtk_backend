@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
-from skill_tracker.models.notification import Notification
+from skill_tracker.db_access.models.task import Task
 from skill_tracker.schemas.notification import NotificationCreate, NotificationUpdate
 
 
@@ -12,16 +12,16 @@ class NotificationRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create(self, notification: NotificationCreate) -> Notification:
-        db_notification = Notification(**notification.model_dump())
+    async def create(self, notification: NotificationCreate) -> Task:
+        db_notification = Task(**notification.model_dump())
         self.session.add(db_notification)
         await self.session.commit()
         await self.session.refresh(db_notification)
         return db_notification
 
-    async def get(self, notification_id: UUID) -> Optional[Notification]:
+    async def get(self, notification_id: UUID) -> Optional[Task]:
         result = await self.session.execute(
-            select(Notification).filter(Notification.id == notification_id)
+            select(Task).filter(Task.id == notification_id)
         )
         return result.scalars().first()
 
@@ -31,14 +31,14 @@ class NotificationRepository:
             limit: int = 10,
             status: Optional[str] = None,
             user_id: Optional[UUID] = None
-    ) -> tuple[list[Notification], int]:
-        base_query = select(Notification)
+    ) -> tuple[list[Task], int]:
+        base_query = select(Task)
         if status:
-            base_query = base_query.filter(Notification.processing_status == status)
+            base_query = base_query.filter(Task.processing_status == status)
         if user_id:
-            base_query = base_query.filter(Notification.user_id == user_id)
+            base_query = base_query.filter(Task.user_id == user_id)
 
-        data_query = base_query.order_by(Notification.created_at.desc()).offset(skip).limit(limit)
+        data_query = base_query.order_by(Task.created_at.desc()).offset(skip).limit(limit)
         data_result = await self.session.execute(data_query)
         notifications = list(data_result.scalars().all())
 
@@ -49,8 +49,8 @@ class NotificationRepository:
         return notifications, total
 
     async def update(
-        self, notification: Notification, notification_update: NotificationUpdate
-    ) -> Notification:
+        self, notification: Task, notification_update: NotificationUpdate
+    ) -> Task:
         notification.read_at = notification_update.read_at
         await self.session.commit()
         await self.session.refresh(notification)
@@ -58,7 +58,7 @@ class NotificationRepository:
 
     async def update_status(
         self, notification_id: UUID, status: str
-    ) -> Optional[Notification]:
+    ) -> Optional[Task]:
         notification = await self.get(notification_id)
         if not notification:
             return None
@@ -73,7 +73,7 @@ class NotificationRepository:
         category: str,
         confidence: float,
         status: str
-    ) -> Optional[Notification]:
+    ) -> Optional[Task]:
         notification = await self.get(notification_id)
         if not notification:
             return None

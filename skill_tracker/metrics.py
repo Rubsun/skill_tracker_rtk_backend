@@ -10,13 +10,13 @@ TOTAL_MESSAGES_PRODUCED = Counter(
     'Total messages produced to AI service'
 )
 
-CREATE_NOTIFICATION_METHOD_DURATION = Histogram(
-    'create_notification_duration_seconds',
-    'Time spent in creating notification',
+CREATE_TASK_METHOD_DURATION = Histogram(
+    'create_task_duration_seconds',
+    'Time spent in creating task',
 )
-GET_ALL_NOTIFICATIONS_METHOD_DURATION = Histogram(
-    'get_all_notifications_duration_seconds',
-    'Measure time of getting all notifications from database and cache',
+GET_ALL_TASKS_METHOD_DURATION = Histogram(
+    'get_all_tasks_duration_seconds',
+    'Measure time of getting all tasks from database and cache',
 )
 
 

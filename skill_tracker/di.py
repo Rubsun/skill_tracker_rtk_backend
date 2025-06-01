@@ -6,13 +6,11 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from skill_tracker.config import Config, load_config
-from skill_tracker.repositories.notification_repository import NotificationRepository
-from skill_tracker.services.notification_service import (
-    NotificationAnalyzer,
-    NotificationGateway,
-    NotificationService,
+from skill_tracker.db_access.repositories.task_repository import NotificationRepository
+from skill_tracker.services.task_service import (
+    TaskGateway,
+    TaskService,
 )
-from skill_tracker.tasks.ai_tasks import AINotificationAnalyzer
 
 
 def config_provider() -> Provider:
@@ -49,20 +47,15 @@ class DatabaseProvider(Provider):
 
 class NotificationProvider(Provider):
     @provide(scope=Scope.REQUEST)
-    def get_notification_gateway(self, session: AsyncSession) -> NotificationGateway:
+    def get_notification_gateway(self, session: AsyncSession) -> TaskGateway:
         return NotificationRepository(session)
-
-    @provide(scope=Scope.REQUEST)
-    def get_ai_notification_analyzer(self) -> NotificationAnalyzer:
-        return AINotificationAnalyzer()
 
     @provide(scope=Scope.REQUEST)
     def get_notification_service(
             self,
-            repository: NotificationGateway,
-            notification_analyzer: NotificationAnalyzer,
-    ) -> NotificationService:
-        return NotificationService(repository, notification_analyzer)
+            repository: TaskGateway,
+    ) -> TaskService:
+        return TaskService(repository)
 
 
 def setup_di():

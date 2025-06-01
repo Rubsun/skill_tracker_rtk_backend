@@ -1,7 +1,7 @@
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from skill_tracker.utils.metrics import REQUESTS_TOTAL
+from skill_tracker.metrics import REQUESTS_TOTAL
 
 
 class RequestCountMiddleware(BaseHTTPMiddleware):
