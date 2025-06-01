@@ -1,0 +1,14 @@
+[project]
+name = "skill-tracker-rtk-backend"
+version = "0.1.0"
+description = "Project for rostelekom"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "celery>=5.5.2",
+    "dishka>=1.6.0",
+    "fastapi>=0.115.12",
+    "prometheus-client>=0.22.0",
+    "redis>=6.2.0",
+    "sqlalchemy>=2.0.41",
+]
