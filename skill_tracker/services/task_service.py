@@ -39,7 +39,7 @@ class TaskGateway(Protocol):
         raise NotImplementedError
 
     async def get_all(
-        self, skip: int = 0, limit: int = 10, status: Optional[str] = None, user_id: Optional[UUID] = None
+        self, skip: int = 0, limit: int = 10, user_id: Optional[UUID] = None
     ) -> tuple[list[Task], int]:
         raise NotImplementedError
 

@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from skill_tracker.config import Config, load_config
-from skill_tracker.db_access.repositories.task_repository import NotificationRepository
+from skill_tracker.db_access.repositories.task_repository import TaskRepository
 from skill_tracker.services.task_service import (
     TaskGateway,
     TaskService,
@@ -45,13 +45,13 @@ class DatabaseProvider(Provider):
             yield session
 
 
-class NotificationProvider(Provider):
+class TaskProvider(Provider):
     @provide(scope=Scope.REQUEST)
-    def get_notification_gateway(self, session: AsyncSession) -> TaskGateway:
-        return NotificationRepository(session)
+    def get_task_gateway(self, session: AsyncSession) -> TaskGateway:
+        return TaskRepository(session)
 
     @provide(scope=Scope.REQUEST)
-    def get_notification_service(
+    def get_task_service(
             self,
             repository: TaskGateway,
     ) -> TaskService:
@@ -62,6 +62,6 @@ def setup_di():
     return make_async_container(
         config_provider(),
         DatabaseProvider(),
-        NotificationProvider(),
+        TaskProvider(),
         RedisProvider()
     )

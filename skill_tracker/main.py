@@ -11,7 +11,7 @@ from starlette.templating import Jinja2Templates
 from skill_tracker.controllers.metrics import router as metrics_router
 from skill_tracker.controllers.middlewares.metrics_middleware import RequestCountMiddleware
 from skill_tracker.controllers.middlewares.rate_limiting_middleware import RateLimitMiddleware
-from skill_tracker.controllers.task import router as notifications_router
+from skill_tracker.controllers.task import router as tasks_router
 from skill_tracker.di import setup_di
 
 
@@ -23,7 +23,7 @@ async def lifespan(app_: FastAPI) -> AsyncGenerator[None, None]:
 
 
 def create_app(ioc_container: AsyncContainer):
-    application = FastAPI(title="Notification Service", version="1.0.0", lifespan=lifespan)
+    application = FastAPI(title="RTK Service", version="1.0.0", lifespan=lifespan)
 
     setup_dishka(container=ioc_container, app=application)
     application.container = ioc_container
@@ -31,7 +31,7 @@ def create_app(ioc_container: AsyncContainer):
     application.add_middleware(RequestCountMiddleware)
     application.add_middleware(RateLimitMiddleware, ioc_container=ioc_container)
 
-    application.include_router(notifications_router, prefix="/api/v1")
+    application.include_router(tasks_router, prefix="/api/v1")
     application.include_router(metrics_router)
 
     @application.get("/health")
@@ -43,14 +43,3 @@ def create_app(ioc_container: AsyncContainer):
 
 container = setup_di()
 app = create_app(container)
-
-# frontend
-templates = Jinja2Templates(directory="static/templates")
-
-@app.get("/", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    return templates.TemplateResponse("notification_dashboard.html", {"request": request})
