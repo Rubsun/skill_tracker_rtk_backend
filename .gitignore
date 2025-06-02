@@ -1,3 +1,5 @@
 .venv
 __pycache__/
+.pytest_cache
 config/.env.db
+config/.env.test_db

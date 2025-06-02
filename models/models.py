@@ -1,27 +1,14 @@
 from uuid import UUID, uuid4
 from typing import List
 from sqlalchemy import (
-    String, ForeignKey, Text, DateTime, Enum, Float, CheckConstraint, UniqueConstraint
+    String, ForeignKey, Text, DateTime, Enum, UniqueConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import enum
 from datetime import datetime, timezone
 
-from models.meta import Base
+from .meta import Base
+from .enums import UserRoleEnum, ContentStatusEnum
 
-
-class UserRoleEnum(enum.Enum):
-    """User roles."""
-    manager = "manager"
-    employee = "employee"
-
-
-class ContentStatusEnum(enum.Enum):
-    """Task statuses."""
-    pending = "pending"
-    incorrect = "incorrect"
-    done = "done"
-    
 
 class User(Base):
     """
@@ -96,8 +83,8 @@ class Course(Base):
     
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[str] = mapped_column(Text)
-    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     manager_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
 
@@ -161,7 +148,7 @@ class Content(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
-    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"))
     task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"), nullable=True)

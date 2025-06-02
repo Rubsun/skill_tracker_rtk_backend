@@ -1,14 +1,8 @@
 CREATE OR REPLACE FUNCTION check_course_manager_role()
 RETURNS TRIGGER AS $$
 DECLARE
-  user_exists INT;
   role_count INT;
 BEGIN
-  SELECT COUNT(*) INTO user_exists FROM users WHERE id = NEW.manager_id;
-  IF user_exists = 0 THEN
-    RAISE EXCEPTION 'Пользователь с id % не существует!', NEW.manager_id;
-  END IF;
-
   SELECT COUNT(*) INTO role_count FROM user_roles WHERE user_id = NEW.manager_id AND role = 'manager';
   IF role_count = 0 THEN
     RAISE EXCEPTION 'Курс может быть создан только пользователем с ролью manager!';

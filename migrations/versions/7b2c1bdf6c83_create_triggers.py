@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import text
 import os
 
 
@@ -20,6 +21,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
+    
     triggers_path = os.path.join(os.path.dirname(__file__), '..', '..', 'sql', 'triggers')
     for filename in sorted(os.listdir(triggers_path)):
         if filename.endswith('.sql'):
@@ -29,21 +32,22 @@ def upgrade() -> None:
                 op.execute(sql)
 
 
+
 def downgrade():
     conn = op.get_bind()
 
-    conn.execute("""
-        DROP TRIGGER IF EXISTS trg_check_user_roles ON users;
+    conn.execute(text("""
+        DROP TRIGGER IF EXISTS trg_check_user_roles_not_empty ON users;
         DROP TRIGGER IF EXISTS trg_check_content_type_task_theory ON contents;
         DROP TRIGGER IF EXISTS trg_check_course_manager_role ON courses;
         DROP TRIGGER IF EXISTS trg_check_course_employee_role ON course_employees;
         DROP TRIGGER IF EXISTS trg_create_employee_content_statuses ON course_employees;
-    """)
+    """))
 
-    conn.execute("""
-        DROP FUNCTION IF EXISTS check_user_roles() CASCADE;
+    conn.execute(text("""
+        DROP FUNCTION IF EXISTS check_user_roles_not_empty() CASCADE;
         DROP FUNCTION IF EXISTS check_content_type_task_theory() CASCADE;
         DROP FUNCTION IF EXISTS check_course_manager_role() CASCADE;
         DROP FUNCTION IF EXISTS check_course_employee_role() CASCADE;
         DROP FUNCTION IF EXISTS create_employee_content_statuses() CASCADE;
-    """)
+    """))

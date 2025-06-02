@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
 
-def get_db_url():
-    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), 'config', '.env.db'))
+def get_db_url(env_file='config/.env.db'):
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), env_file))
     pg_vars = ['PG_HOST', 'PG_PORT', 'PG_USER', 'PG_PASSWORD', 'PG_DBNAME']
     credentials = {pg_var: os.environ.get(pg_var) for pg_var in pg_vars}
     return 'postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_DBNAME}'.format(
@@ -13,4 +13,4 @@ def get_db_url():
     )
 
 
-engine = create_engine(get_db_url(), echo=False)
+# engine = create_engine(get_db_url(), echo=False)

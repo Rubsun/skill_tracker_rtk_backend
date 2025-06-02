@@ -4,7 +4,7 @@ BEGIN
   INSERT INTO employee_content_statuses (
     id,
     course_employee_id,
-    course_content_id,
+    content_id,
     status,
     updated_at
   )
@@ -14,7 +14,7 @@ BEGIN
     cc.id,
     'pending',
     now()
-  FROM course_contents cc
+  FROM contents cc
   WHERE cc.course_id = NEW.course_id;
 
   RETURN NEW;
