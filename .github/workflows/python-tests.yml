@@ -2,18 +2,28 @@ name: Python Tests
 
 on:
   push:
-    branches:
-      - database
-  pull_request:
-    branches:
-      - database
+    branches: [database]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 7991:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: skilltracker-test-db
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Set up Python
@@ -23,12 +33,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
 
       - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@postgres:7991/skilltracker-test-db
         run: |
-          source .venv/bin/activate
-          pytest
+          pytest --maxfail=1 --disable-warnings -q
