@@ -2,9 +2,9 @@ CREATE OR REPLACE FUNCTION check_content_type_task_theory()
 RETURNS TRIGGER AS $$
 BEGIN
   IF (NEW.task_id IS NOT NULL AND NEW.theory_id IS NOT NULL) THEN
-    RAISE EXCEPTION 'Поля task_id и theory_id не могут быть заполнены одновременно!';
+    RAISE EXCEPTION 'The task_id and theory_id fields cannot be filled in at the same time!';
   ELSIF (NEW.task_id IS NULL AND NEW.theory_id IS NULL) THEN
-    RAISE EXCEPTION 'Одно из полей task_id или theory_id должно быть заполнено!';
+    RAISE EXCEPTION 'One of the task_id or theory_id fields must be filled in!';
   END IF;
 
   RETURN NEW;

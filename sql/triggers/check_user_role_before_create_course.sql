@@ -5,7 +5,7 @@ DECLARE
 BEGIN
   SELECT COUNT(*) INTO role_count FROM user_roles WHERE user_id = NEW.manager_id AND role = 'manager';
   IF role_count = 0 THEN
-    RAISE EXCEPTION 'Курс может быть создан только пользователем с ролью manager!';
+    RAISE EXCEPTION 'The course can only be created by a user with the manager role!';
   END IF;
   RETURN NEW;
 END;

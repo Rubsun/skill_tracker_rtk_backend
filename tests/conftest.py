@@ -13,7 +13,6 @@ def apply_migrations():
     alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
     alembic_cfg.set_main_option("sqlalchemy.url", get_db_url("config/.env.test_db"))
     command.upgrade(alembic_cfg, "head")
-    # command.downgrade(alembic_cfg, "-1")
     yield
 
 

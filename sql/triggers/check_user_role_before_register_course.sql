@@ -5,7 +5,7 @@ DECLARE
 BEGIN
   SELECT COUNT(*) INTO role_count FROM user_roles WHERE user_id = NEW.employee_id AND role = 'employee';
   IF role_count = 0 THEN
-    RAISE EXCEPTION 'Только пользователь с ролью employee может регистрироваться на курсы!';
+    RAISE EXCEPTION 'Only a user with the employee role can register for the courses!';
   END IF;
   RETURN NEW;
 END;
