@@ -5,6 +5,10 @@ from models.enums import UserRoleEnum
 
 
 def test_check_content_type_task_theory_raises_error_two_fields_filled_in(db_session):
+    """
+    Test that creating Content with both task_id and theory_id set raises a DBAPIError.
+    This enforces the rule that only one of these fields can be filled at the same time.
+    """
     manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
     db_session.add(manager)
 
@@ -30,6 +34,10 @@ def test_check_content_type_task_theory_raises_error_two_fields_filled_in(db_ses
 
 
 def test_check_content_type_task_theory_raises_error_two_fields_empty(db_session):
+    """
+    Test that creating Content with neither task_id nor theory_id set raises a DBAPIError.
+    This enforces the rule that one of these fields must be filled.
+    """
     manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
     db_session.add(manager)
 
@@ -53,6 +61,10 @@ def test_check_content_type_task_theory_raises_error_two_fields_empty(db_session
 
 
 def test_check_content_type_task_theory_passes(db_session):
+    """
+    Test that creating Content with exactly one of task_id or theory_id set commits successfully.
+    Validates that the constraint on content type is enforced correctly.
+    """
     manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
     db_session.add(manager)
 

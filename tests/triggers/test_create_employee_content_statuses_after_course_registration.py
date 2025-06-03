@@ -3,6 +3,11 @@ from models.enums import UserRoleEnum, ContentStatusEnum
 
 
 def test_create_employee_content_statuses_creates_statuses(db_session):
+    """
+    Test that when a user with employee role is registered to a course,
+    EmployeeContentStatus entries are created for all course contents with a 'pending' status.
+    Validates automatic status creation on course enrollment.
+    """
     manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
     db_session.add(manager)
 

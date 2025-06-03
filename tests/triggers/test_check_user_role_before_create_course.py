@@ -4,6 +4,10 @@ from models.enums import UserRoleEnum
 
 
 def test_check_course_manager_role_raises_error(db_session):
+    """
+    Test that creating a Course with a manager_id referencing a user without the manager role raises a DBAPIError.
+    Ensures only users with the manager role can create courses.
+    """
     employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
     db_session.add(employee)
 
@@ -23,6 +27,10 @@ def test_check_course_manager_role_raises_error(db_session):
 
 
 def test_check_course_manager_role_passes(db_session):
+    """
+    Test that creating a Course with a valid manager (user with manager role) commits successfully.
+    Validates role-based access control on course creation.
+    """
     manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
     db_session.add(manager)
 

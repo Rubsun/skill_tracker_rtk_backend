@@ -5,6 +5,10 @@ from models.enums import UserRoleEnum
 
 
 def test_check_user_roles_raises_error_when_no_roles(db_session):
+    """
+    Test that deleting all roles from a user causes a DBAPIError on commit.
+    Enforces that every user must have at least one role.
+    """
     employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
     db_session.add(employee)
 
@@ -22,6 +26,10 @@ def test_check_user_roles_raises_error_when_no_roles(db_session):
         assert "User must have at least one role!" in str(e.orig)
 
 def test_check_user_roles_passes_when_user_has_role(db_session):
+    """
+    Test that committing a user with at least one role succeeds without errors.
+    Confirms the role presence constraint is satisfied.
+    """
     employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
     db_session.add(employee)
 
