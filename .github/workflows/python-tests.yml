@@ -41,4 +41,4 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@postgres:7991/skilltracker-test-db
         run: |
-          pytest test/triggers --maxfail=1 --disable-warnings -q
+          pytest tests/triggers --maxfail=1 --disable-warnings -q
