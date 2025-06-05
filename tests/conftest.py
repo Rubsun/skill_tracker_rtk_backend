@@ -47,7 +47,7 @@ def reset_tables(db_session):
     Truncate all relevant tables in the test database before each test function.
     This ensures a clean state for tests by removing all existing data.
     """
-    db_session.execute(text("TRUNCATE TABLE employee_content_statuses CASCADE"))
+    db_session.execute(text("TRUNCATE TABLE course_employee_contents CASCADE"))
     db_session.execute(text("TRUNCATE TABLE comments CASCADE"))
     db_session.execute(text("TRUNCATE TABLE course_employees CASCADE"))
     db_session.execute(text("TRUNCATE TABLE contents CASCADE"))

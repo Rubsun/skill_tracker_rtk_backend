@@ -7,19 +7,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test_name:
-          - test_check_content_type_task_theory_raises_error_two_fields_filled_in
-          - test_check_content_type_task_theory_raises_error_two_fields_empty
-          - test_check_content_type_task_theory_passes
-          - test_check_course_manager_role_raises_error
-          - test_check_course_manager_role_passes
-          - test_check_course_employee_role_raises_error
-          - test_check_course_employee_role_passes
-          - test_check_user_roles_raises_error_when_no_roles
-          - test_check_user_roles_passes_when_user_has_role
-          - test_create_employee_content_statuses_creates_statuses
 
     services:
       postgres:
@@ -50,8 +37,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt pytest
 
-      - name: Run specific test
+      - name: Run all trigger tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@postgres:7991/skilltracker-test-db
         run: |
-          pytest -k ${{ matrix.test_name }} --maxfail=1 --disable-warnings -q
+          pytest test/triggers --maxfail=1 --disable-warnings -q

@@ -1,7 +1,7 @@
-CREATE OR REPLACE FUNCTION create_employee_content_statuses()
+CREATE OR REPLACE FUNCTION create_course_employee_contents()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO employee_content_statuses (
+  INSERT INTO course_employee_contents (
     id,
     course_employee_id,
     content_id,
@@ -21,7 +21,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_create_employee_content_statuses
+CREATE TRIGGER trg_create_course_employee_contents
 AFTER INSERT ON course_employees
 FOR EACH ROW
-EXECUTE FUNCTION create_employee_content_statuses();
+EXECUTE FUNCTION create_course_employee_contents();

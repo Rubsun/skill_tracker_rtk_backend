@@ -1,21 +1,26 @@
 """Create basic tables
 
-Revision ID: 946e054cb83c
+Revision ID: 62e6bcd9a179
 Revises: 
-Create Date: 2025-05-31 20:35:59.995209
+Create Date: 2025-06-05 23:19:01.936347
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+import os
+
+from migrations.utils.triggers import apply_sql_files_from_directory, drop_triggers_and_functions_from_directory
 
 
 # revision identifiers, used by Alembic.
-revision: str = '946e054cb83c'
+revision: str = '62e6bcd9a179'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+triggers_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'sql', 'triggers', 'create_basic_tables')
 
 
 def upgrade() -> None:
@@ -48,9 +53,12 @@ def upgrade() -> None:
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('title', sa.String(length=200), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('passing_percent', sa.Integer(), nullable=False),
+    sa.Column('is_produced', sa.Boolean(), nullable=False),
     sa.Column('deadline', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('manager_id', sa.Uuid(), nullable=False),
+    sa.CheckConstraint('passing_percent >= 0 AND passing_percent <= 100', name=op.f('ck_courses_chk_passing_percent_range')),
     sa.ForeignKeyConstraint(['manager_id'], ['public.users.id'], name=op.f('fk_courses_manager_id_users'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_courses')),
     schema='public'
@@ -75,10 +83,13 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['task_id'], ['public.tasks.id'], name=op.f('fk_contents_task_id_tasks'), ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['theory_id'], ['public.theories.id'], name=op.f('fk_contents_theory_id_theories'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_contents')),
+    sa.UniqueConstraint('course_id', 'task_id', name='uq_course_task'),
+    sa.UniqueConstraint('course_id', 'theory_id', name='uq_course_theory'),
     schema='public'
     )
     op.create_table('course_employees',
     sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('is_completed', sa.Boolean(), nullable=False),
     sa.Column('assigned_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('course_id', sa.Uuid(), nullable=False),
     sa.Column('employee_id', sa.Uuid(), nullable=False),
@@ -101,6 +112,8 @@ def upgrade() -> None:
     )
     # ### end Alembic commands ###
 
+    apply_sql_files_from_directory(triggers_dir)
+
 
 def downgrade() -> None:
     """Downgrade schema."""
@@ -114,3 +127,5 @@ def downgrade() -> None:
     op.drop_table('theories', schema='public')
     op.drop_table('tasks', schema='public')
     # ### end Alembic commands ###
+
+    drop_triggers_and_functions_from_directory(triggers_dir)

@@ -1,11 +1,11 @@
-from models.models import User, UserRole, Course, Content, CourseEmployee, EmployeeContentStatus, Task, Theory
+from models.models import User, UserRole, Course, Content, CourseEmployee, CourseEmployeeContent, Task, Theory
 from models.enums import UserRoleEnum, ContentStatusEnum
 
 
-def test_create_employee_content_statuses_creates_statuses(db_session):
+def test_create_course_employee_contents(db_session):
     """
     Test that when a user with employee role is registered to a course,
-    EmployeeContentStatus entries are created for all course contents with a 'pending' status.
+    CourseEmployeeContent entries are created for all course contents with a 'pending' status.
     Validates automatic status creation on course enrollment.
     """
     manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
@@ -16,7 +16,7 @@ def test_create_employee_content_statuses_creates_statuses(db_session):
 
     db_session.flush()
 
-    course = Course(title='title', manager_id=manager.id)
+    course = Course(title='title', manager_id=manager.id, is_produced=True)
     task = Task(question='question', answer='answer')
     theory = Theory(text='text')
     db_session.add_all([course, task, theory])
@@ -42,6 +42,6 @@ def test_create_employee_content_statuses_creates_statuses(db_session):
 
     db_session.commit()
 
-    statuses = db_session.query(EmployeeContentStatus).filter_by(course_employee_id=course_employee.id).all()
+    statuses = db_session.query(CourseEmployeeContent).filter_by(course_employee_id=course_employee.id).all()
     assert len(statuses) == 2
     assert all(s.status == ContentStatusEnum.pending for s in statuses)

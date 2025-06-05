@@ -1,7 +1,7 @@
 from uuid import UUID, uuid4
 from typing import List
 from sqlalchemy import (
-    String, ForeignKey, Text, DateTime, Enum, UniqueConstraint
+    String, ForeignKey, Text, Integer, DateTime, Enum, Boolean, UniqueConstraint, CheckConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
@@ -26,6 +26,7 @@ class User(Base):
         manager_courses (List[Course]): A relationship with the Course model, indicating the courses managed by the user.
         employee_courses (List[CourseEmployee]): A relationship with the CourseEmployee model, indicating the courses assigned to the user.
         comments (List[Comment]): A relationship with the Comment model, indicating the comments made by the user.
+        notifications (List[Notification]): A relationship with the Notification model, indicating the notifications for user.
     """
     __tablename__ = 'users'
 
@@ -35,10 +36,11 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    roles: Mapped[List['UserRole']] = relationship('UserRole', back_populates='user', cascade="all, delete-orphan")
+    user_roles: Mapped[List['UserRole']] = relationship('UserRole', back_populates='user', cascade="all, delete-orphan")
     manager_courses: Mapped[List['Course']] = relationship('Course', back_populates='manager', cascade="all, delete-orphan")
     employee_courses: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='employee', cascade="all, delete-orphan")
     comments: Mapped[List['Comment']] = relationship('Comment', back_populates='user', cascade="all, delete-orphan")
+    notifications: Mapped[List['Notification']] = relationship('Notification', back_populates='user', cascade="all, delete-orphan")
 
 
 class UserRole(Base):
@@ -59,7 +61,7 @@ class UserRole(Base):
     role: Mapped[UserRoleEnum] = mapped_column(Enum(UserRoleEnum), nullable=False)
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
     
-    user: Mapped['User'] = relationship('User', back_populates='roles')
+    user: Mapped['User'] = relationship('User', back_populates='user_roles')
 
 
 class Course(Base):
@@ -70,6 +72,8 @@ class Course(Base):
         id (UUID): The unique identifier for the course (primary key).
         title (str): The title of the course, non-null, max 200 chars.
         description (str): The description of the course, optional.
+        passing_percent (int): The passing percent that needs to be scored in order for the course to be considered completed, non-null.
+        is_produced (bool): Has the manager completed the course creation or not, non-null.
         deadline (datetime): The deadline for the course, optional.
         created_at (datetime): The timestamp when the course was created, non-null.
         manager_id (UUID): A foreign key referencing the users table, indicating the manager responsible for the course. 
@@ -84,13 +88,19 @@ class Course(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    passing_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
+    is_produced: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     manager_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
 
     manager: Mapped['User'] = relationship('User', back_populates='manager_courses')
     contents: Mapped[List['Content']] = relationship('Content', back_populates='course', cascade="all, delete-orphan")
-    course_employees: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='course')
+    course_employees: Mapped[List['CourseEmployee']] = relationship('CourseEmployee', back_populates='course', cascade="all, delete-orphan")
+
+    __table_args__ = (
+        CheckConstraint('passing_percent >= 0 AND passing_percent <= 100', name='chk_passing_percent_range'),
+    )
 
 
 class CourseEmployee(Base):
@@ -99,6 +109,7 @@ class CourseEmployee(Base):
 
     Attributes:
         id (UUID): The unique identifier for the course employee record (primary key).
+        is_completed (bool): Flag indicating whether the employee has completed the course.
         assigned_at (datetime): The timestamp when the employee was assigned to the course.
         course_id (UUID): A foreign key referencing the courses table, indicating the course the employee is assigned to.
         employee_id (UUID): A foreign key referencing the users table, indicating the employee.
@@ -106,22 +117,23 @@ class CourseEmployee(Base):
     Relationships:
         course (Course): A relationship with the Course model, indicating the course the employee is associated with.
         employee (User): A relationship with the User model, indicating the employee assigned to the course.
-        content_statuses (List[EmployeeContentStatus]): A relationship with EmployeeContentStatus, representing the statuses of course contents for this particular employee.
+        content_statuses (List[CourseEmployeeContent]): A relationship with CourseEmployeeContent, representing the statuses of course contents for this particular employee.
     """
     __tablename__ = 'course_employees'
 
-    __table_args__ = (
-        UniqueConstraint('course_id', 'employee_id', name='uq_course_employee'),
-    )
-
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    is_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"))
     employee_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"))
 
     course: Mapped['Course'] = relationship('Course', back_populates="course_employees")
     employee: Mapped['User'] = relationship('User', back_populates="employee_courses")
-    content_statuses: Mapped[List['EmployeeContentStatus']] = relationship('EmployeeContentStatus', back_populates='course_employee', cascade="all, delete-orphan")
+    content_statuses: Mapped[List['CourseEmployeeContent']] = relationship('CourseEmployeeContent', back_populates='course_employee', cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint('course_id', 'employee_id', name='uq_course_employee'),
+    )
 
 
 class Content(Base):
@@ -142,7 +154,7 @@ class Content(Base):
         task (Task): A relationship with the Task model, indicating that this content represents a task.
         theory (Theory): A relationship with the Theory model, indicating that this content represents a theory.
         comments (List[Comment]): A relationship with the Comment model, indicating the comments made on this course content.
-        content_statuses (List[EmployeeContentStatus]): A relationship with EmployeeContentStatus, representing the statuses of this content for each employee assigned to the course.
+        content_statuses (List[CourseEmployeeContent]): A relationship with CourseEmployeeContent, representing the statuses of this content for each employee assigned to the course.
     """
     __tablename__ = 'contents'
 
@@ -153,15 +165,20 @@ class Content(Base):
     course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"))
     task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"), nullable=True)
     theory_id: Mapped[UUID] = mapped_column(ForeignKey('theories.id', ondelete="CASCADE"), nullable=True)
-    
+
     course: Mapped['Course'] = relationship('Course', back_populates='contents')
-    task: Mapped['Task'] = relationship('Task', back_populates='contents', uselist=False)
-    theory: Mapped['Theory'] = relationship('Theory', back_populates='contents', uselist=False)
+    task: Mapped['Task'] = relationship('Task', back_populates='content', uselist=False)
+    theory: Mapped['Theory'] = relationship('Theory', back_populates='content', uselist=False)
     comments: Mapped[List['Comment']] = relationship('Comment', back_populates='content', cascade="all, delete-orphan")
-    content_statuses: Mapped[List['EmployeeContentStatus']] = relationship('EmployeeContentStatus', back_populates='content', cascade="all, delete-orphan")
+    content_statuses: Mapped[List['CourseEmployeeContent']] = relationship('CourseEmployeeContent', back_populates='content', cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint('course_id', 'task_id', name='uq_course_task'),
+        UniqueConstraint('course_id', 'theory_id', name='uq_course_theory'),
+    )
 
 
-class EmployeeContentStatus(Base):
+class CourseEmployeeContent(Base):
     """
     Represents the status of a specific content item (task or theory) for a given
     course employee (user enrolled in a course).
@@ -172,25 +189,29 @@ class EmployeeContentStatus(Base):
 
     Attributes:
         id (UUID): Unique identifier for the status record (primary key).
-        course_employee_id (UUID): Foreign key linking to the CourseEmployee record, indicating which user-course enrollment this status belongs to.
-        content_id (UUID): Foreign key linking to the Content record, indicating the specific content item whose status is tracked.
         status (ContentStatusEnum): Current status of the content for this employee. Typical values include 'pending', 'done', and 'incorrect' (for tasks).
         updated_at (datetime): Timestamp of the last update to this status record, stored with timezone awareness.
+        course_employee_id (UUID): Foreign key linking to the CourseEmployee record, indicating which user-course enrollment this status belongs to.
+        content_id (UUID): Foreign key linking to the Content record, indicating the specific content item whose status is tracked.
 
     Relationships:
         course_employee (CourseEmployee): The enrollment of the user in the course.
         content (Content): The course content item (task or theory) being tracked.
     """
-    __tablename__ = 'employee_content_statuses'
+    __tablename__ = 'course_employee_contents'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    course_employee_id: Mapped[UUID] = mapped_column(ForeignKey('course_employees.id'), nullable=False)
-    content_id: Mapped[UUID] = mapped_column(ForeignKey('contents.id'), nullable=False)
     status: Mapped[ContentStatusEnum] = mapped_column(Enum(ContentStatusEnum), nullable=False, default=ContentStatusEnum.pending)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    course_employee_id: Mapped[UUID] = mapped_column(ForeignKey('course_employees.id'), nullable=False)
+    content_id: Mapped[UUID] = mapped_column(ForeignKey('contents.id'), nullable=False)
 
     course_employee: Mapped['CourseEmployee'] = relationship('CourseEmployee', back_populates='content_statuses')
     content: Mapped['Content'] = relationship('Content', back_populates='content_statuses')
+
+    __table_args__ = (
+        UniqueConstraint('course_employee_id', 'content_id', name='uq_course_employee_content'),
+    )
 
 
 class Task(Base):
@@ -211,7 +232,7 @@ class Task(Base):
     question: Mapped[str] = mapped_column(String(200), nullable=False)
     answer: Mapped[str] = mapped_column(String(200), nullable=False)
     
-    contents: Mapped[List['Content']] = relationship('Content', back_populates='task')
+    content: Mapped['Content'] = relationship('Content', back_populates='task', cascade="all, delete-orphan", single_parent=True)
 
 
 class Theory(Base):
@@ -230,7 +251,7 @@ class Theory(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    contents: Mapped[List['Content']] = relationship('Content', back_populates='theory')
+    content: Mapped['Content'] = relationship('Content', back_populates='theory', cascade="all, delete-orphan", single_parent=True)
 
 
 class Comment(Base):
@@ -258,3 +279,28 @@ class Comment(Base):
 
     content: Mapped['Content'] = relationship('Content', back_populates='comments')
     user: Mapped['User'] = relationship('User', back_populates='comments')
+
+
+class Notification(Base):
+    """
+    The model for notifications sent to users based on their roles.
+
+    Attributes:
+        id (UUID): Unique identifier for the notification (primary key).
+        message (str): The text content of the notification.
+        is_read (bool): Flag indicating whether the notification has been read by the user.
+        created_at (datetime): Timestamp when the notification was created.
+        user_id (UUID): Foreign key referencing the user who will receive the notification.
+
+    Relationships:
+        user (User): The user who receives this notification.
+    """
+    __tablename__ = 'notifications'
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+
+    user: Mapped['User'] = relationship('User', back_populates='notifications')
