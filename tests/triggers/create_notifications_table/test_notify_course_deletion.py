@@ -1,4 +1,4 @@
-from models.models import User, UserRole, Course, Notification, CourseEmployee
+from models.models import User, UserRole, Course, Notification
 from models.enums import UserRoleEnum
 
 

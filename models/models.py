@@ -163,12 +163,12 @@ class Content(Base):
     deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     course_id: Mapped[UUID] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"))
-    task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"), nullable=True)
-    theory_id: Mapped[UUID] = mapped_column(ForeignKey('theories.id', ondelete="CASCADE"), nullable=True)
+    task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="SET NULL"), nullable=True)
+    theory_id: Mapped[UUID] = mapped_column(ForeignKey('theories.id', ondelete="SET NULL"), nullable=True)
 
     course: Mapped['Course'] = relationship('Course', back_populates='contents')
-    task: Mapped['Task'] = relationship('Task', back_populates='content', uselist=False)
-    theory: Mapped['Theory'] = relationship('Theory', back_populates='content', uselist=False)
+    task: Mapped['Task'] = relationship('Task', back_populates='content', cascade="all, delete-orphan", single_parent=True)
+    theory: Mapped['Theory'] = relationship("Theory", back_populates="content", cascade="all, delete-orphan", single_parent=True)
     comments: Mapped[List['Comment']] = relationship('Comment', back_populates='content', cascade="all, delete-orphan")
     content_statuses: Mapped[List['CourseEmployeeContent']] = relationship('CourseEmployeeContent', back_populates='content', cascade="all, delete-orphan")
 
@@ -232,7 +232,7 @@ class Task(Base):
     question: Mapped[str] = mapped_column(String(200), nullable=False)
     answer: Mapped[str] = mapped_column(String(200), nullable=False)
     
-    content: Mapped['Content'] = relationship('Content', back_populates='task', cascade="all, delete-orphan", single_parent=True)
+    content: Mapped['Content'] = relationship('Content', back_populates='task', uselist=False)
 
 
 class Theory(Base):
@@ -251,7 +251,7 @@ class Theory(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    content: Mapped['Content'] = relationship('Content', back_populates='theory', cascade="all, delete-orphan", single_parent=True)
+    content: Mapped['Content'] = relationship('Content', back_populates='theory', uselist=False)
 
 
 class Comment(Base):
