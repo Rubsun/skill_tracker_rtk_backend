@@ -9,7 +9,7 @@
 - Один пользователь может иметь несколько ролей (например, "manager" или "employee"), при этом хотя бы одну (сейчас это не реализовано, поэтому на данный момент будет правильнее написать "..., либо не иметь вообще.").
 - Одна роль принадлежит одному пользователю, либо не принадлежит никому.
 
-### 2. User ↔ Course (One-to-Many)
+### 2. User <---> Course (One-to-Many)
 - Один пользователь с ролью "manager" может создать несколько курсов, либо не создать ни одного.
 - Один курс может быть создан обязательно одним и только одним пользователем с ролью "manager".
 
@@ -52,37 +52,37 @@
 
 ## Каскадное удаление:
 
-### 1. User -> UserRole (cascade="all, delete-orphan"):
+### 1. User --> UserRole (cascade="all, delete-orphan"):
 - Удаление пользователя влечёт за собой удаление всех связей с его ролями.
 
-### 2. User -> manager_courses (Course.manager_id, ondelete='CASCADE'):
+### 2. User --> manager_courses (Course.manager_id, ondelete='CASCADE'):
 - Удаление пользователя влечёт за собой удаление всех курсов, которые он создал.
 
-### 3. User -> employee_courses (CourseEmployee.employee_id, ondelete='CASCADE'):
+### 3. User --> employee_courses (CourseEmployee.employee_id, ondelete='CASCADE'):
 - Удаление пользователя влечёт за собой удаление всех всех связей с курсами, на которые он записался.
 
-### 4. User -> comments (Comment.user_id, ondelete='CASCADE'):
+### 4. User --> comments (Comment.user_id, ondelete='CASCADE'):
 - Удаление пользователя приводит к удалению всех его комментариев.
 
-### 5. User -> notifications (Notification.user_id, ondelete='CASCADE'):
+### 5. User --> notifications (Notification.user_id, ondelete='CASCADE'):
 - При удалении пользователя удаляются все его уведомления.
 
-### 6. Course -> contents (Content.course_id, ondelete='CASCADE'):
+### 6. Course --> contents (Content.course_id, ondelete='CASCADE'):
 - Удаление курса вызывает удаление всех его элементов контента.
 
-### 7. Course -> course_employees (CourseEmployee.course_id, ondelete='CASCADE'):
+### 7. Course --> course_employees (CourseEmployee.course_id, ondelete='CASCADE'):
 - При удалении курса удаляются все связи этого курса с пользователями, которые были записаны на этот курс.
 
-### 8. Content -> comments (Comment.content_id, ondelete='CASCADE'):
+### 8. Content --> comments (Comment.content_id, ondelete='CASCADE'):
 - Удаление содержимого курса удаляет все комментарии к нему.
 
-### 9. Content -> course_employee_contents (CourseEmployeeContent.content_id, ondelete='CASCADE'):
+### 9. Content --> course_employee_contents (CourseEmployeeContent.content_id, ondelete='CASCADE'):
 - Удаление содержимого курса приводит к удалению всех статусов прохождения элементов контента пользователями.
 
-### 10. Content -> task_id/theory_id (ondelete='CASCADE') + single_parent=True:
+### 10. Content --> task_id/theory_id (ondelete='CASCADE') + single_parent=True:
 - Удаление содержимого удаляет связанные задачи (Task) и теории (Theory), если они не используются в других элементах контента.
 
-### 11. CourseEmployee -> course_employee_contents (ondelete='CASCADE'):
+### 11. CourseEmployee --> course_employee_contents (ondelete='CASCADE'):
 - При удалении записи о назначении сотрудника на курс удаляются все статусы прохождения элементов контента этого сотрудника.
 
 ---
