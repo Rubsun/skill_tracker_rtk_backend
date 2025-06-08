@@ -2,7 +2,6 @@ import os
 from collections.abc import AsyncGenerator
 
 from dishka import Provider, Scope, make_async_container, provide
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from skill_tracker.config import Config, load_config
@@ -16,15 +15,10 @@ from skill_tracker.services.task_service import (
 def config_provider() -> Provider:
     provider = Provider()
 
-    cfg_path = os.getenv('AEZAKMI_TEST_CONFIG_PATH', './configs/app.toml')
+    cfg_path = os.getenv('SKILL_TRACKER_CONFIG_PATH', './configs/app.toml')
     provider.provide(lambda: load_config(cfg_path), scope=Scope.APP, provides=Config)
     return provider
 
-
-class RedisProvider(Provider):
-    @provide(scope=Scope.APP)
-    async def get_redis_client(self, cfg: Config) -> Redis:
-        return Redis.from_url(cfg.redis.uri)
 
 
 class DatabaseProvider(Provider):
@@ -63,5 +57,4 @@ def setup_di():
         config_provider(),
         DatabaseProvider(),
         TaskProvider(),
-        RedisProvider()
     )

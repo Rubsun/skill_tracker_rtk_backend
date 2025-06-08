@@ -18,21 +18,10 @@ class DatabaseConfig:
         )
 
 
-@dataclass
-class RedisConfig:
-    host: str
-    port: int
-
-    def __post_init__(self) -> None:
-        self.uri = (
-            f"redis://{self.host}:{self.port}"
-        )
-
 
 @dataclass
 class Config:
     db: DatabaseConfig
-    redis: RedisConfig
 
 
 def load_config(config_path: str) -> Config:
@@ -40,5 +29,4 @@ def load_config(config_path: str) -> Config:
         data = toml.load(config_file)
     return Config(
         db=DatabaseConfig(**data["db"]),
-        redis=RedisConfig(**data["redis"]),
     )

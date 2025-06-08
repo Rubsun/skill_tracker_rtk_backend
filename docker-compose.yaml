@@ -1,0 +1,46 @@
+services:
+  skill_tracker_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "skill_tracker-skill_tracker_service"
+    environment:
+      SKILL_TRACKER_TEST_CONFIG_PATH: "./configs/app.docker.toml"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  db_migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "skill_tracker-db_migrations"
+    environment:
+      SKILL_TRACKER_CONFIG_PATH: "./configs/app.docker.toml"
+    command: "uv run alembic upgrade head"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16.0-alpine3.18
+    container_name: "skill_tracker-db"
+    env_file:
+      - configs/db.env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d mydb" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+volumes:
+  postgres_data:
