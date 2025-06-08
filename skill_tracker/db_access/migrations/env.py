@@ -11,7 +11,7 @@ from alembic import context
 from skill_tracker.config import load_config
 from skill_tracker.db_access.models import *  # noqa
 
-app_cfg = load_config(config_path=os.getenv("SKILL_TRACKER_TEST_CONFIG_PATH", './configs/app.toml'))
+app_cfg = load_config(config_path=os.getenv("SKILL_TRACKER_CONFIG_PATH", './configs/app.toml'))
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
