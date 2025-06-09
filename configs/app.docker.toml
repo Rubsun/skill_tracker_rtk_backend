@@ -1,4 +1,7 @@
 # Your backend secrets
+[auth]
+secret = "SECRET"
+
 [db]
 user = "postgres"
 password = "postgres"

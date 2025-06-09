@@ -18,10 +18,15 @@ class DatabaseConfig:
         )
 
 
+@dataclass
+class AuthConfig:
+    secret: str
+
 
 @dataclass
 class Config:
     db: DatabaseConfig
+    auth: AuthConfig
 
 
 def load_config(config_path: str) -> Config:
@@ -29,4 +34,5 @@ def load_config(config_path: str) -> Config:
         data = toml.load(config_file)
     return Config(
         db=DatabaseConfig(**data["db"]),
+        auth=AuthConfig(**data["auth"])
     )
