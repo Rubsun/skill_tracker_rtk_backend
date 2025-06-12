@@ -102,7 +102,7 @@ class TaskService:
         task = await self.repository.get(task_id)
         if not task:
             return None
-        return TaskDTO(title=task.title, description=task.description, status=task.status, progress=task.progress, user_id=task.user_id, deadline=task.deadline, created_at=task.created_at, id=task.id)
+        return TaskDTO(title=task.title, description=task.description, status=task.status, progress=task.progress, manager_id=task.manager_id, employee_id=task.employee_id, deadline=task.deadline, created_at=task.created_at, id=task.id)
 
     async def get_tasks(
         self,
@@ -111,26 +111,41 @@ class TaskService:
         user_id: Optional[UUID] = None,
     ) -> tuple[int, list[TaskDTO]]:
         tasks, total = await self.repository.get_all(skip=skip, limit=limit, user_id=user_id)
-        return total, [TaskDTO(title=n.title, description=n.description, status=n.status, progress=n.progress, user_id=n.user_id, deadline=n.deadline, created_at=n.created_at, id=n.id) for n in tasks]
+        return (
+            total,
+            [
+                TaskDTO(
+                    title=n.title,
+                    description=n.description,
+                    status=n.status,
+                    progress=n.progress,
+                    employee_id=n.employee_id,
+                    manager_id=n.manager_id,
+                    deadline=n.deadline,
+                    created_at=n.created_at,
+                    id=n.id
+                ) for n in tasks
+            ]
+        )
 
     async def update_task(self, caller, task_id: UUID, task_update: TaskUpdateDTO) -> TaskDTO:
         db_task = await self.repository.get(task_id)
         if db_task is None:
             raise ValueError('task not found')
-        if caller.id != db_task.user_id:
-            raise PermissionError
+
         if caller.role != "manager" and not caller.is_superuser:
             raise OnlyManagerCanUpdateTaskError
 
         update_task = await self.repository.update(task_id, task_update)
         return TaskDTO(title=update_task.title, description=update_task.description, status=update_task.status,
-                       progress=update_task.progress, user_id=update_task.user_id, deadline=update_task.deadline,
-                       created_at=update_task.created_at, id=update_task.id)
+                       progress=update_task.progress, employee_id=update_task.employee_id, deadline=update_task.deadline,
+                       created_at=update_task.created_at, id=update_task.id, manager_id=update_task.manager_id)
 
     async def delete_task(self, caller, task_id: UUID) -> bool:
         db_task = await self.repository.get(task_id)
-        if caller.id != db_task.user_id:
-            raise PermissionError
+        if not db_task:
+            raise ValueError('task not found')
+
         if caller.role != "manager" and not caller.is_superuser:
             raise OnlyManagerCanDeleteTaskError
         is_deleted = await self.repository.delete(task_id)

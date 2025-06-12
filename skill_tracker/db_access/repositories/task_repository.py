@@ -32,7 +32,7 @@ class TaskRepository(TaskGateway):
     ) -> tuple[list[Task], int]:
         base_query = select(Task)
         if user_id:
-            base_query = base_query.filter(Task.user_id == user_id)
+            base_query = base_query.filter(Task.employee_id == user_id)
 
         data_query = base_query.order_by(Task.created_at.desc()).offset(skip).limit(limit)
         data_result = await self.session.execute(data_query)

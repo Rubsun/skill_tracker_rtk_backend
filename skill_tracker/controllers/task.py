@@ -45,7 +45,8 @@ class TaskResponse(TaskBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID4
-    user_id: UUID4
+    manager_id: UUID4
+    employee_id: UUID4
     created_at: datetime
     deadline: datetime
     status: TaskStatusEnum
