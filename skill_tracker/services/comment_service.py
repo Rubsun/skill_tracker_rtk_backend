@@ -1,4 +1,3 @@
-from multiprocessing.managers import Value
 from typing import Protocol
 
 
@@ -8,7 +7,6 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from skill_tracker.db_access.repositories.task_repository import TaskRepository
 from skill_tracker.services.task_service import TaskGateway
 
 
@@ -65,7 +63,6 @@ class CommentService:
         self, comment: CommentCreateDTO
     ) -> CommentDTO:
         task_to_comment = await self.task_repository.get(comment.task_id)
-        print(task_to_comment)
         if task_to_comment is None:
             raise ValueError('task not found')
 
@@ -88,12 +85,18 @@ class CommentService:
         return total, [CommentDTO(id=n.id, text=n.text, created_at=n.created_at, task_id=n.task_id, user_id=n.user_id) for n in comments]
 
     async def update_comment(self, caller, comment_id: UUID, comment_update: CommentUpdateDTO) -> CommentDTO:
-        db_comment = await self.repository.update(comment_id, comment_update)
+        db_comment = await self.repository.get(comment_id)
+        if db_comment is None:
+            raise ValueError('comment not found')
         if caller.id != db_comment.user_id:
             raise PermissionError
+        update_comment = await self.repository.update(comment_id, comment_update)
 
-        return CommentDTO(id=db_comment.id, text=db_comment.text, created_at=db_comment.created_at, task_id=db_comment.task_id, user_id=db_comment.user_id)
+        return CommentDTO(id=update_comment.id, text=update_comment.text, created_at=update_comment.created_at, task_id=update_comment.task_id, user_id=update_comment.user_id)
 
-    async def delete_comment(self, comment_id: UUID) -> bool:
+    async def delete_comment(self, caller, comment_id: UUID) -> bool:
+        db_comment = await self.repository.get(comment_id)
+        if caller.id != db_comment.user_id:
+            raise PermissionError
         is_deleted = await self.repository.delete(comment_id)
         return is_deleted

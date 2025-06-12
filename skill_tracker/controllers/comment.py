@@ -58,18 +58,6 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
         return db_comment
 
 
-    @router.get("/comments/")
-    async def get_comments(
-            service: FromDishka[CommentService],
-            task_id: UUID | None = None,
-            skip: int = 0,
-            limit: int = 10,
-            user: User = Depends(fastapi_users.current_user(active=True))
-    ):
-        res = await service.get_comments(skip=skip, limit=limit, task_id=task_id)
-        return res
-
-
     @router.get("/comments/{comment_id}", response_model=CommentResponse)
     async def get_comment(
             comment_id: UUID,
@@ -80,6 +68,18 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
         if not comment:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="comment not found")
         return comment
+
+
+    @router.get("/comments/")
+    async def get_comments(
+            service: FromDishka[CommentService],
+            task_id: UUID | None = None,
+            skip: int = 0,
+            limit: int = 10,
+            user: User = Depends(fastapi_users.current_user(active=True))
+    ):
+        res = await service.get_comments(skip=skip, limit=limit, task_id=task_id)
+        return res
 
 
     @router.put("/comment/{comment_id}", response_model=CommentResponse)
@@ -97,6 +97,8 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="comment not found")
         except PermissionError as e:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Can not update others person comment')
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         return db_comment
 
 
@@ -106,7 +108,10 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
             service: FromDishka[CommentService],
             user: User = Depends(fastapi_users.current_user(active=True))
     ):
-        is_deleted = await service.delete_comment(comment_id)
+        try:
+            is_deleted = await service.delete_comment(user, comment_id)
+        except PermissionError as e:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Can not delete others person comment')
         if not is_deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="comment not found")
         return None

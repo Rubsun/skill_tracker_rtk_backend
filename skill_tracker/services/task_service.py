@@ -65,6 +65,14 @@ class OnlyManagerCanCreateTaskError(Exception):
     pass
 
 
+class OnlyManagerCanUpdateTaskError(Exception):
+    pass
+
+
+class OnlyManagerCanDeleteTaskError(Exception):
+    pass
+
+
 class TaskService:
     def __init__(self, repository: TaskGateway):
         self.repository = repository
@@ -93,12 +101,25 @@ class TaskService:
         tasks, total = await self.repository.get_all(skip=skip, limit=limit, user_id=user_id)
         return total, [TaskDTO(title=n.title, description=n.description, status=n.status, progress=n.progress, user_id=n.user_id, deadline=n.deadline, created_at=n.created_at, id=n.id) for n in tasks]
 
-    async def update_task(self, task_id: UUID, task_update: TaskUpdateDTO) -> TaskDTO:
-        db_task = await self.repository.update(task_id, task_update)
-        return TaskDTO(title=db_task.title, description=db_task.description, status=db_task.status,
-                       progress=db_task.progress, user_id=db_task.user_id, deadline=db_task.deadline,
-                       created_at=db_task.created_at, id=db_task.id)
+    async def update_task(self, caller, task_id: UUID, task_update: TaskUpdateDTO) -> TaskDTO:
+        db_task = await self.repository.get(task_id)
+        if db_task is None:
+            raise ValueError('task not found')
+        if caller.id != db_task.user_id:
+            raise PermissionError
+        if caller.role != "manager" and not caller.is_superuser:
+            raise OnlyManagerCanUpdateTaskError
 
-    async def delete_task(self, task_id: UUID) -> bool:
+        update_task = await self.repository.update(task_id, task_update)
+        return TaskDTO(title=update_task.title, description=update_task.description, status=update_task.status,
+                       progress=update_task.progress, user_id=update_task.user_id, deadline=update_task.deadline,
+                       created_at=update_task.created_at, id=update_task.id)
+
+    async def delete_task(self, caller, task_id: UUID) -> bool:
+        db_task = await self.repository.get(task_id)
+        if caller.id != db_task.user_id:
+            raise PermissionError
+        if caller.role != "manager" and not caller.is_superuser:
+            raise OnlyManagerCanDeleteTaskError
         is_deleted = await self.repository.delete(task_id)
         return is_deleted
