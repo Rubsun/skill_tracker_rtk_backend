@@ -108,8 +108,9 @@ class CommentProvider(Provider):
     def get_task_service(
             self,
             repository: CommentGateway,
+            task_repository: TaskGateway,
     ) -> CommentService:
-        return CommentService(repository)
+        return CommentService(repository, task_repository)
 
 
 def setup_di():

@@ -1,3 +1,4 @@
+from multiprocessing.managers import Value
 from typing import Protocol
 
 
@@ -6,6 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
+
+from skill_tracker.db_access.repositories.task_repository import TaskRepository
+from skill_tracker.services.task_service import TaskGateway
 
 
 @dataclass
@@ -53,12 +57,18 @@ class CommentGateway(Protocol):
 
 
 class CommentService:
-    def __init__(self, repository: CommentGateway):
+    def __init__(self, repository: CommentGateway, task_repository: TaskGateway):
         self.repository = repository
+        self.task_repository = task_repository
 
     async def create_comment(
         self, comment: CommentCreateDTO
     ) -> CommentDTO:
+        task_to_comment = await self.task_repository.get(comment.task_id)
+        print(task_to_comment)
+        if task_to_comment is None:
+            raise ValueError('task not found')
+
         db_comment = await self.repository.create(comment)
         return CommentDTO(id=db_comment.id, text=db_comment.text, created_at=db_comment.created_at, task_id=db_comment.task_id, user_id=db_comment.user_id)
 
@@ -77,8 +87,11 @@ class CommentService:
         comments, total = await self.repository.get_all(skip=skip, limit=limit, task_id=task_id)
         return total, [CommentDTO(id=n.id, text=n.text, created_at=n.created_at, task_id=n.task_id, user_id=n.user_id) for n in comments]
 
-    async def update_comment(self, comment_id: UUID, comment_update: CommentUpdateDTO) -> CommentDTO:
+    async def update_comment(self, caller, comment_id: UUID, comment_update: CommentUpdateDTO) -> CommentDTO:
         db_comment = await self.repository.update(comment_id, comment_update)
+        if caller.id != db_comment.user_id:
+            raise PermissionError
+
         return CommentDTO(id=db_comment.id, text=db_comment.text, created_at=db_comment.created_at, task_id=db_comment.task_id, user_id=db_comment.user_id)
 
     async def delete_comment(self, comment_id: UUID) -> bool:

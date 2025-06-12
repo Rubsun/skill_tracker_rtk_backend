@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from dishka import AsyncContainer
 
 from skill_tracker.db_access.models import TaskStatusEnum
-from skill_tracker.services.task_service import TaskService
+from skill_tracker.services.task_service import TaskService, OnlyManagerCanCreateTaskError
 from skill_tracker.metrics import (
     CREATE_TASK_METHOD_DURATION,
     GET_ALL_TASKS_METHOD_DURATION,
@@ -64,10 +64,10 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
             service: FromDishka[TaskService],
             user: User = Depends(fastapi_users.current_user(active=True))
     ):
-        if user.role != "manager" and not user.is_superuser:
+        try:
+            db_task = await service.create_task(caller=user, task=task)
+        except OnlyManagerCanCreateTaskError:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can create tasks")
-
-        db_task = await service.create_task(task)
         return db_task
 
 

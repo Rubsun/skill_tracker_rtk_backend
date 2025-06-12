@@ -61,14 +61,20 @@ class TaskGateway(Protocol):
 
 
 
+class OnlyManagerCanCreateTaskError(Exception):
+    pass
+
 
 class TaskService:
     def __init__(self, repository: TaskGateway):
         self.repository = repository
 
     async def create_task(
-        self, task: TaskCreateDTO
+        self, caller, task: TaskCreateDTO
     ) -> TaskDTO:
+        if caller.role != "manager" and not caller.is_superuser:
+            raise OnlyManagerCanCreateTaskError
+
         db_task = await self.repository.create(task)
         return TaskDTO(title=db_task.title, description=db_task.description, status=db_task.status, progress=db_task.progress, user_id=db_task.user_id, deadline=db_task.deadline, created_at=db_task.created_at, id=db_task.id)
 
