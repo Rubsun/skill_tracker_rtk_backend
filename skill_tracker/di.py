@@ -5,7 +5,6 @@ from collections.abc import AsyncGenerator
 from dishka import Provider, Scope, make_async_container, provide
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import JWTStrategy, BearerTransport, AuthenticationBackend
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from skill_tracker.config import Config, load_config
@@ -18,7 +17,12 @@ from skill_tracker.services.task_service import (
 from skill_tracker.db_access.repositories.user_repository import UserRepository
 from skill_tracker.services.user_service import (
     UserGateway,
-    UserService, UserManager,
+    UserManager,
+)
+from skill_tracker.db_access.repositories.comment_repository import CommentRepository
+from skill_tracker.services.comment_service import (
+    CommentGateway,
+    CommentService,
 )
 
 
@@ -94,13 +98,18 @@ class UserProvider(Provider):
             auth_backends=[auth_backend]
         )
 
+
+class CommentProvider(Provider):
     @provide(scope=Scope.REQUEST)
-    def get_user_service(
+    def get_comment_gateway(self, session: AsyncSession) -> CommentGateway:
+        return CommentRepository(session)
+
+    @provide(scope=Scope.REQUEST)
+    def get_task_service(
             self,
-            repository: UserGateway,
-            fastapi_users: FastAPIUsers[User, uuid.UUID]
-    ) -> UserService:
-        return UserService(repository, fastapi_users)
+            repository: CommentGateway,
+    ) -> CommentService:
+        return CommentService(repository)
 
 
 def setup_di():
@@ -109,4 +118,5 @@ def setup_di():
         DatabaseProvider(),
         TaskProvider(),
         UserProvider(),
+        CommentProvider(),
     )

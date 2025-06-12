@@ -1,7 +1,7 @@
 import uuid
 
 from fastapi_users.db import SQLAlchemyUserDatabase
-from skill_tracker.db_access.models.user import User
+from skill_tracker.db_access.models import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

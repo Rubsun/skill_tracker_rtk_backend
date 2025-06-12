@@ -1,35 +1,45 @@
-from contextlib import suppress
 from uuid import UUID
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, HTTPException, status, Query
-from fastapi.responses import Response
-from redis.asyncio import Redis
-from starlette.websockets import WebSocket
+from fastapi import APIRouter, HTTPException, status, Depends
 
-from skill_tracker.services.task_service import TaskService, CanNotMarkAsReadException
-from skill_tracker.cache import cache
+from dishka import AsyncContainer
+
+from skill_tracker.db_access.models import TaskStatusEnum
+from skill_tracker.services.task_service import TaskService
 from skill_tracker.metrics import (
     CREATE_TASK_METHOD_DURATION,
     GET_ALL_TASKS_METHOD_DURATION,
     measure_latency,
 )
+from fastapi_users import FastAPIUsers
 from datetime import datetime
 from typing import Optional
+from skill_tracker.db_access.models import User
 
-from pydantic import UUID4, BaseModel, ConfigDict
+from pydantic import UUID4, BaseModel, ConfigDict, FutureDatetime, Field
 
 
 class TaskBase(BaseModel):
     title: str
-    text: str
+    description: Optional[str] = None
+
 
 class TaskCreate(TaskBase):
     user_id: UUID4
+    deadline: Optional[FutureDatetime] = None
+    status: Optional[TaskStatusEnum] = TaskStatusEnum.pending
+    progress: Optional[int] = Field(0, ge=0, le=100)
+
 
 class TaskUpdate(BaseModel):
-    read_at: Optional[datetime] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    deadline: Optional[FutureDatetime] = None
+    status: Optional[TaskStatusEnum] = None
+    progress: Optional[int] = Field(None, ge=0, le=100)
+
 
 class TaskResponse(TaskBase):
     model_config = ConfigDict(from_attributes=True)
@@ -37,98 +47,82 @@ class TaskResponse(TaskBase):
     id: UUID4
     user_id: UUID4
     created_at: datetime
-    read_at: Optional[datetime]
-    category: Optional[str]
-    confidence: Optional[float]
-    processing_status: str
+    deadline: datetime
+    status: TaskStatusEnum
+    progress: int
 
 
-class ManytasksResponse(BaseModel):
-    total: int
-    results: list[TaskResponse]
+async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
+    router = APIRouter(route_class=DishkaRoute, tags=["tasks"], prefix="/api/v1")
+    fastapi_users = await container.get(FastAPIUsers[User, UUID])
 
 
-router = APIRouter(route_class=DishkaRoute)
+    @router.post("/tasks/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+    @measure_latency(CREATE_TASK_METHOD_DURATION)
+    async def create_task(
+            task: TaskCreate,
+            service: FromDishka[TaskService],
+            user: User = Depends(fastapi_users.current_user(active=True))
+    ):
+        if user.role != "manager" and not user.is_superuser:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can create tasks")
+
+        db_task = await service.create_task(task)
+        return db_task
 
 
-@router.post("/tasks/", response_model=TaskResponse)
-@measure_latency(CREATE_TASK_METHOD_DURATION)
-async def create_task(
-        task: TaskCreate,
-        service: FromDishka[TaskService]
-):
-    db_task = await service.create_task(task)
-    return Response(
-        status_code=status.HTTP_201_CREATED,
-        content=db_task.model_dump_json(indent=4)
-    )
+    @router.get("/tasks/")
+    @measure_latency(GET_ALL_TASKS_METHOD_DURATION)
+    async def get_tasks(
+            service: FromDishka[TaskService],
+            user_id: UUID | None = None,
+            skip: int = 0,
+            limit: int = 10,
+            user: User = Depends(fastapi_users.current_user(active=True))
+    ):
+        res = await service.get_tasks(skip=skip, limit=limit, user_id=user_id)
+        return res
 
 
-@router.get("/tasks/")
-@measure_latency(GET_ALL_TASKS_METHOD_DURATION)
-@cache(ttl=10)
-async def get_tasks(
-        service: FromDishka[TaskService],
-        redis_client: FromDishka[Redis],  # noqa
-        user_id: UUID | None = None,
-        skip: int = 0,
-        limit: int = 10,
-        status_: str | None = None,
-):
-    res = await service.get_tasks(skip=skip, limit=limit, status=status_, user_id=user_id)
-    return res
+    @router.get("/tasks/{task_id}", response_model=TaskResponse)
+    async def get_task(
+            task_id: UUID,
+            service: FromDishka[TaskService],
+            user: User = Depends(fastapi_users.current_user(active=True))
+    ):
+        task = await service.get_task(task_id)
+        if not task:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
+        return task
 
 
-@router.get("/tasks/{task_id}", response_model=TaskResponse)
-@cache(ttl=10)
-async def get_task(
-        task_id: UUID,
-        redis_client: FromDishka[Redis],  # noqa
-        service: FromDishka[TaskService]
-):
-    task = await service.get_task(task_id)
-    if not task:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
-    return task
+    @router.put("/tasks/{task_id}", response_model=TaskResponse)
+    async def update_task(
+            task_id: UUID,
+            task_update: TaskUpdate,
+            service: FromDishka[TaskService],
+            user: User = Depends(fastapi_users.current_user(active=True))
+    ):
+        if user.role != "manager" and not user.is_superuser:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can update tasks")
 
+        db_task = await service.update_task(task_id, task_update)
+        if not db_task:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
+        return db_task
 
-@router.post("/tasks/{task_id}/mark-as-read", response_model=TaskResponse)
-async def mark_task_as_read(
-        task_id: UUID,
-        service: FromDishka[TaskService]
-):
-    try:
-        task = await service.mark_as_read(task_id)
-    except CanNotMarkAsReadException as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+    async def delete_task(
+            task_id: UUID,
+            service: FromDishka[TaskService],
+            user: User = Depends(fastapi_users.current_user(active=True))
+    ):
+        if user.role != "manager" and not user.is_superuser:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can delete tasks")
 
-    if not task:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
-    return task
+        is_deleted = await service.delete_task(task_id)
+        if not is_deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
+        return None
 
-
-@router.websocket("/ws")
-async def websocket_endpoint(
-        websocket: WebSocket,
-        user_id: str = Query(...),
-):
-    await websocket.accept()
-    if user_id not in websocket_connections:
-        websocket_connections[user_id] = []
-    websocket_connections[user_id].append(websocket)
-
-    try:
-        while True:
-            # Держим соединение открытым
-            await websocket.receive_text()
-    except Exception as e:
-        print(e)
-        websocket_connections[user_id].remove(websocket)
-        if not websocket_connections[user_id]:
-            del websocket_connections[user_id]
-    finally:
-        with suppress(RuntimeError):
-            await websocket.close()
-
-
-websocket_connections = {}
+    return router

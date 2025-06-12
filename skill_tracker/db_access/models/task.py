@@ -1,17 +1,35 @@
-import uuid
-from datetime import datetime
+from datetime import datetime, timezone
+from uuid import uuid4, UUID
 
-from sqlalchemy import UUID, Column, DateTime, String
+from sqlalchemy import DateTime, String, ForeignKey, Text, Integer, CheckConstraint, Enum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import List
 
 from .base import Base
+import enum
+
+
+class TaskStatusEnum(str, enum.Enum):
+    pending = "pending"
+    incorrect = "incorrect"
+    done = "done"
 
 
 class Task(Base):
     __tablename__ = "tasks"
 
-    id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID, nullable=False)
-    title = Column(String, nullable=False)
-    text = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.now)
-    read_at = Column(DateTime, nullable=True)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[TaskStatusEnum] = mapped_column(Enum(TaskStatusEnum), nullable=False, default=TaskStatusEnum.pending)
+    progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    user: Mapped['User'] = relationship('User', back_populates='tasks')
+    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='task', cascade="all, delete-orphan")
+
+    __table_args__ = (
+        CheckConstraint('progress >= 0 AND progress <= 100', name='chk_progress_range'),
+    )

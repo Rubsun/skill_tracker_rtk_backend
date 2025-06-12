@@ -1,27 +1,29 @@
 from typing import Protocol
 
 from fastapi import Request
-from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, models
+from fastapi_users import BaseUserManager, UUIDIDMixin
 from fastapi_users import schemas
-from fastapi_users.authentication import (
-    AuthenticationBackend,
-    BearerTransport,
-    JWTStrategy,
-)
-from skill_tracker.db_access.models.user import User
+from pydantic import Field, BaseModel
+
+from skill_tracker.db_access.models import User, UserRoleEnum
 from typing import Optional
 import uuid
 
 
-class UserRead(schemas.BaseUser[uuid.UUID]):
+class MainUser(BaseModel):
+    given_name: str = Field(..., min_length=1, max_length=50)
+    family_name: str = Field(..., min_length=1, max_length=100)
+    role: UserRoleEnum
+
+class UserRead(MainUser, schemas.BaseUser[uuid.UUID]):
     pass
 
 
-class UserCreate(schemas.BaseUserCreate):
+class UserCreate(MainUser, schemas.BaseUserCreate):
     pass
 
 
-class UserUpdate(schemas.BaseUserUpdate):
+class UserUpdate(MainUser, schemas.BaseUserUpdate):
     pass
 
 
@@ -48,12 +50,3 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         self, user: User, token: str, request: Optional[Request] = None
     ):
         print(f"Verification requested for user {user.id}. Verification token: {token}")
-
-
-class UserService:
-    def __init__(self, repository: UserGateway, fastapi_users: FastAPIUsers[User, uuid.UUID]):
-        self.repository = repository
-        self.fastapi_users = fastapi_users
-
-    async def __get_user_manager(self) :
-        return await self.repository.get_user_db()

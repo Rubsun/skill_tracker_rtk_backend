@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from skill_tracker.db_access.models.task import Task
+from skill_tracker.db_access.models import Task
 from skill_tracker.services.task_service import TaskCreateDTO, TaskGateway, TaskUpdateDTO
 
 
@@ -45,37 +45,29 @@ class TaskRepository(TaskGateway):
         return tasks, total
 
     async def update(
-        self, task: Task, task_update: TaskUpdateDTO
-    ) -> Task:
-        task.read_at = task_update.read_at
-        await self.session.commit()
-        await self.session.refresh(task)
-        return task
-
-    async def update_status(
-        self, task_id: UUID, status: str
+        self, task_id: UUID, task_update: TaskUpdateDTO
     ) -> Optional[Task]:
         task = await self.get(task_id)
         if not task:
             return None
-        task.processing_status = status
+
+        task.title = task_update.title
+        task.description = task_update.description
+        task.deadline = task_update.deadline
+        task.status = task_update.status
+        task.progress = task_update.progress
+
         await self.session.commit()
         await self.session.refresh(task)
+
         return task
 
-    async def update_analysis(
-        self,
-        task_id: UUID,
-        category: str,
-        confidence: float,
-        status: str
-    ) -> Optional[Task]:
+    async def delete(self, task_id: UUID) -> bool:
         task = await self.get(task_id)
         if not task:
-            return None
-        task.category = category
-        task.confidence = confidence
-        task.processing_status = status
+            return False
+
+        await self.session.delete(task)
         await self.session.commit()
-        await self.session.refresh(task)
-        return task
+
+        return True
