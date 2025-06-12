@@ -1,20 +1,20 @@
-import uuid
+from uuid import UUID
 
-from dishka import FromDishka, AsyncContainer
+from dishka import AsyncContainer
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import AuthenticationBackend
 
 from skill_tracker.db_access.models import User
-from skill_tracker.services.user_service import UserCreate, UserRead, UserUpdate, UserService
+from skill_tracker.services.user_service import UserCreate, UserRead, UserUpdate
 
 
-async def get_users_controller(container: AsyncContainer):
+async def get_users_controller(container: AsyncContainer) -> APIRouter:
     router = APIRouter(route_class=DishkaRoute)
 
-    auth_backend = await container.get(AuthenticationBackend[User, uuid.UUID])
-    fastapi_users = await container.get(FastAPIUsers[User, uuid.UUID])
+    auth_backend = await container.get(AuthenticationBackend[User, UUID])
+    fastapi_users = await container.get(FastAPIUsers[User, UUID])
 
 
     router.include_router(

@@ -1,9 +1,13 @@
 from .base import Base
-from .task import Task
-from .user import User
+from .task import Task, TaskStatusEnum
+from .user import User, UserRoleEnum
+from .comment import Comment
 
 __all__ = (
     "Base",
     "Task",
-    "User"
+    "User",
+    "Comment",
+    "UserRoleEnum",
+    "TaskStatusEnum"
 )
