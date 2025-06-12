@@ -28,6 +28,7 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     deadline: Optional[FutureDatetime] = None
+    employee_id: UUID
     status: Optional[TaskStatusEnum] = TaskStatusEnum.pending
     progress: Optional[int] = Field(0, ge=0, le=100)
 
@@ -64,7 +65,18 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
             user: User = Depends(fastapi_users.current_user(active=True))
     ):
         try:
-            db_task = await service.create_task(caller=user, task=TaskCreateDTO(title=task.title, description=task.description, user_id=user.id, deadline=task.deadline, status=task.status, progress=task.progress))
+            db_task = await service.create_task(
+                caller=user,
+                task=TaskCreateDTO(
+                    title=task.title,
+                    description=task.description,
+                    employee_id=task.employee_id,
+                    manager_id=user.id,
+                    deadline=task.deadline,
+                    status=task.status,
+                    progress=task.progress
+                )
+            )
         except OnlyManagerCanCreateTaskError:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can create tasks")
         return db_task

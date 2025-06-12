@@ -22,5 +22,4 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     family_name: Mapped[str] = mapped_column(String(100), nullable=False)
     role: Mapped[UserRoleEnum] = mapped_column(Enum(UserRoleEnum), nullable=False)
 
-    tasks: Mapped['Task'] = relationship('Task', back_populates="user", cascade="all, delete-orphan")
     comments: Mapped[List['Comment']] = relationship('Comment', back_populates='user', cascade="all, delete-orphan")

@@ -12,7 +12,8 @@ from uuid import UUID
 class TaskCreateDTO:
     title: str
     description: Optional[str]
-    user_id: UUID
+    employee_id: UUID
+    manager_id: UUID
     deadline: Optional[datetime]
     status: Optional[TaskStatusEnum]
     progress: Optional[int]
@@ -30,7 +31,8 @@ class TaskUpdateDTO:
 @dataclass
 class TaskDTO:
     id: UUID
-    user_id: UUID
+    manager_id: UUID
+    employee_id: UUID
     title: str
     created_at: datetime
     description: Optional[str]
@@ -84,7 +86,17 @@ class TaskService:
             raise OnlyManagerCanCreateTaskError
 
         db_task = await self.repository.create(task)
-        return TaskDTO(title=db_task.title, description=db_task.description, status=db_task.status, progress=db_task.progress, user_id=db_task.user_id, deadline=db_task.deadline, created_at=db_task.created_at, id=db_task.id)
+        return TaskDTO(
+            title=db_task.title,
+            description=db_task.description,
+            status=db_task.status,
+            progress=db_task.progress,
+            employee_id=db_task.employee_id,
+            deadline=db_task.deadline,
+            created_at=db_task.created_at,
+            id=db_task.id,
+            manager_id=task.manager_id
+        )
 
     async def get_task(self, task_id: UUID) -> Optional[TaskDTO]:
         task = await self.repository.get(task_id)

@@ -19,7 +19,8 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
+    employee_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
+    manager_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -27,7 +28,6 @@ class Task(Base):
     progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
-    user: Mapped['User'] = relationship('User', back_populates='tasks')
     comments: Mapped[List['Comment']] = relationship('Comment', back_populates='task', cascade="all, delete-orphan")
 
     __table_args__ = (
