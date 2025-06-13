@@ -38,7 +38,7 @@ def create_app(ioc_container: AsyncContainer):
 
     application.include_router(metrics_router)
 
-    @application.get("/health")
+    @application.get("/api/v1/health")
     async def health_check():
         return {"status": "healthy"}
 

@@ -26,13 +26,15 @@ class TaskRepository(TaskGateway):
 
     async def get_all(
             self,
+            caller,
             skip: int = 0,
             limit: int = 10,
-            user_id: Optional[UUID] = None
     ) -> tuple[list[Task], int]:
         base_query = select(Task)
-        if user_id:
-            base_query = base_query.filter(Task.employee_id == user_id)
+        if caller.role == "manager":
+            base_query = base_query.filter(Task.manager_id == caller.id)
+        else:
+            base_query = base_query.filter(Task.employee_id == caller.id)
 
         data_query = base_query.order_by(Task.created_at.desc()).offset(skip).limit(limit)
         data_result = await self.session.execute(data_query)

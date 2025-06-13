@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from dishka import AsyncContainer
 
 from skill_tracker.db_access.models import TaskStatusEnum
-from skill_tracker.services.task_service import TaskService, OnlyManagerCanCreateTaskError, TaskCreateDTO, TaskUpdateDTO, OnlyManagerCanUpdateTaskError, OnlyManagerCanDeleteTaskError
+from skill_tracker.services.task_service import TaskService, OnlyManagerCanCreateTaskError, TaskCreateDTO, TaskUpdateDTO, OnlyManagerCanUpdateTaskError, OnlyManagerCanDeleteTaskError, OnlyEmployeeCanBeAttachedToTask
 from skill_tracker.metrics import (
     CREATE_TASK_METHOD_DURATION,
     GET_ALL_TASKS_METHOD_DURATION,
@@ -18,7 +18,7 @@ from datetime import datetime
 from typing import Optional
 from skill_tracker.db_access.models import User
 
-from pydantic import UUID4, BaseModel, ConfigDict, FutureDatetime, Field
+from pydantic import BaseModel, ConfigDict, FutureDatetime, Field
 
 
 class TaskBase(BaseModel):
@@ -44,9 +44,9 @@ class TaskUpdate(BaseModel):
 class TaskResponse(TaskBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID4
-    manager_id: UUID4
-    employee_id: UUID4
+    id: UUID
+    manager_id: UUID
+    employee_id: UUID
     created_at: datetime
     deadline: datetime
     status: TaskStatusEnum
@@ -78,10 +78,14 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
                     progress=task.progress
                 )
             )
-        except OnlyManagerCanCreateTaskError:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can create tasks")
-        return db_task
+        except OnlyManagerCanCreateTaskError as e:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        except OnlyEmployeeCanBeAttachedToTask as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+        return db_task
 
     @router.get("/tasks/{task_id}", response_model=TaskResponse)
     async def get_task(
@@ -89,9 +93,11 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
             service: FromDishka[TaskService],
             user: User = Depends(fastapi_users.current_user(active=True))
     ):
-        task = await service.get_task(task_id)
-        if not task:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
+        try:
+            task = await service.get_task(task_id)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
         return task
 
     @router.get("/tasks/")
@@ -102,7 +108,7 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
             limit: int = 10,
             user: User = Depends(fastapi_users.current_user(active=True))
     ):
-        res = await service.get_tasks(skip=skip, limit=limit, user_id=user.id)
+        res = await service.get_tasks(caller=user, skip=skip, limit=limit)
         return res
 
 
@@ -115,12 +121,12 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
     ):
         try:
             db_task = await service.update_task(user, task_id, TaskUpdateDTO(title=task_update.title, description=task_update.description, deadline=task_update.deadline, status=task_update.status, progress=task_update.progress))
-            if not db_task:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
-        except OnlyManagerCanUpdateTaskError as e:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can update tasks")
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
         except PermissionError as e:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Can not update others person task')
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        except OnlyManagerCanUpdateTaskError as e:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
         return db_task
 
@@ -132,12 +138,13 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
     ):
         try:
             is_deleted = await service.delete_task(user, task_id)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         except PermissionError as e:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can delete tasks")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
         except OnlyManagerCanDeleteTaskError as e:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers can delete tasks")
-        if not is_deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task not found")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
         return None
 
     return router

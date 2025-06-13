@@ -17,7 +17,7 @@ from skill_tracker.services.task_service import (
 from skill_tracker.db_access.repositories.user_repository import UserRepository
 from skill_tracker.services.user_service import (
     UserGateway,
-    UserManager,
+    UserManager, UserService,
 )
 from skill_tracker.db_access.repositories.comment_repository import CommentRepository
 from skill_tracker.services.comment_service import (
@@ -62,8 +62,9 @@ class TaskProvider(Provider):
     def get_task_service(
             self,
             repository: TaskGateway,
+            user_repository: UserGateway,
     ) -> TaskService:
-        return TaskService(repository)
+        return TaskService(repository, user_repository)
 
 
 class UserProvider(Provider):
@@ -79,7 +80,7 @@ class UserProvider(Provider):
     async def get_auth_backend(self, strategy: JWTStrategy[User, uuid.UUID]) -> AuthenticationBackend[User, uuid.UUID]:
         return AuthenticationBackend(
             name="jwt",
-            transport=BearerTransport(tokenUrl="auth/jwt/login"),
+            transport=BearerTransport(tokenUrl="/api/v1/auth/jwt/login"),
             get_strategy=lambda: strategy,
         )
 
@@ -97,6 +98,14 @@ class UserProvider(Provider):
             lambda: user_manager,
             auth_backends=[auth_backend]
         )
+
+    @provide(scope=Scope.REQUEST)
+    def get_user_service(
+            self,
+            repository: UserGateway,
+            fastapi_users: FastAPIUsers[User, uuid.UUID]
+    ) -> UserService:
+        return UserService(repository, fastapi_users)
 
 
 class CommentProvider(Provider):

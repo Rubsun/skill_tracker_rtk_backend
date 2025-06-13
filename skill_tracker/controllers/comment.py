@@ -12,12 +12,12 @@ from typing import Optional
 from fastapi_users import FastAPIUsers
 from skill_tracker.db_access.models import User
 
-from pydantic import UUID4, BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 
 class CommentCreate(BaseModel):
     text: str
-    task_id: UUID4
+    task_id: UUID
 
 
 class CommentUpdate(BaseModel):
@@ -27,11 +27,11 @@ class CommentUpdate(BaseModel):
 class CommentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID4
+    id: UUID
     text: str
     created_at: datetime
-    task_id: UUID4
-    user_id: UUID4
+    task_id: UUID
+    user_id: UUID
 
 
 async def get_comments_controller(container: AsyncContainer) -> APIRouter:
@@ -53,10 +53,10 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
                     user_id=user.id,
                 )
             )
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-        return db_comment
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+        return db_comment
 
     @router.get("/comments/{comment_id}", response_model=CommentResponse)
     async def get_comment(
@@ -64,11 +64,12 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
             service: FromDishka[CommentService],
             user: User = Depends(fastapi_users.current_user(active=True))
     ):
-        comment = await service.get_comment(comment_id)
-        if not comment:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="comment not found")
-        return comment
+        try:
+            comment = await service.get_comment(comment_id)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+        return comment
 
     @router.get("/comments/")
     async def get_comments(
@@ -93,12 +94,11 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
             db_comment = await service.update_comment(user, comment_id, CommentUpdateDTO(
                 text=comment_update.text
             ))
-            if not db_comment:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="comment not found")
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
         except PermissionError as e:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Can not update others person comment')
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
         return db_comment
 
 
@@ -110,10 +110,11 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
     ):
         try:
             is_deleted = await service.delete_comment(user, comment_id)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
         except PermissionError as e:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Can not delete others person comment')
-        if not is_deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="comment not found")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
         return None
 
     return router

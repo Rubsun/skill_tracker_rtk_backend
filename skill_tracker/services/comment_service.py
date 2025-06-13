@@ -63,8 +63,8 @@ class CommentService:
         self, comment: CommentCreateDTO
     ) -> CommentDTO:
         task_to_comment = await self.task_repository.get(comment.task_id)
-        if task_to_comment is None:
-            raise ValueError('task not found')
+        if not task_to_comment:
+            raise ValueError("Task not found")
 
         db_comment = await self.repository.create(comment)
         return CommentDTO(id=db_comment.id, text=db_comment.text, created_at=db_comment.created_at, task_id=db_comment.task_id, user_id=db_comment.user_id)
@@ -72,7 +72,8 @@ class CommentService:
     async def get_comment(self, comment_id: UUID) -> Optional[CommentDTO]:
         comment = await self.repository.get(comment_id)
         if not comment:
-            return None
+            raise ValueError("Comment not found")
+
         return CommentDTO(id=comment.id, text=comment.text, created_at=comment.created_at, task_id=comment.task_id, user_id=comment.user_id)
 
     async def get_comments(
@@ -82,21 +83,27 @@ class CommentService:
         task_id: Optional[UUID] = None,
     ) -> tuple[int, list[CommentDTO]]:
         comments, total = await self.repository.get_all(skip=skip, limit=limit, task_id=task_id)
-        return total, [CommentDTO(id=n.id, text=n.text, created_at=n.created_at, task_id=n.task_id, user_id=n.user_id) for n in comments]
+        return total, [CommentDTO(id=comment.id, text=comment.text, created_at=comment.created_at, task_id=comment.task_id, user_id=comment.user_id) for comment in comments]
 
     async def update_comment(self, caller, comment_id: UUID, comment_update: CommentUpdateDTO) -> CommentDTO:
         db_comment = await self.repository.get(comment_id)
-        if db_comment is None:
-            raise ValueError('comment not found')
+        if not db_comment:
+            raise ValueError("Comment not found")
+
         if caller.id != db_comment.user_id:
-            raise PermissionError
+            raise PermissionError("Can not update others person comment")
+
         update_comment = await self.repository.update(comment_id, comment_update)
 
         return CommentDTO(id=update_comment.id, text=update_comment.text, created_at=update_comment.created_at, task_id=update_comment.task_id, user_id=update_comment.user_id)
 
     async def delete_comment(self, caller, comment_id: UUID) -> bool:
         db_comment = await self.repository.get(comment_id)
+        if not db_comment:
+            raise ValueError("Comment not found")
+
         if caller.id != db_comment.user_id:
-            raise PermissionError
+            raise PermissionError("Can not delete others person comment")
+
         is_deleted = await self.repository.delete(comment_id)
         return is_deleted

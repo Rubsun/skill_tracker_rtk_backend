@@ -2,6 +2,7 @@ from typing import Protocol
 
 
 from skill_tracker.db_access.models import Task, TaskStatusEnum
+from skill_tracker.services.user_service import UserGateway
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -49,7 +50,7 @@ class TaskGateway(Protocol):
         raise NotImplementedError
 
     async def get_all(
-        self, skip: int = 0, limit: int = 10, user_id: Optional[UUID] = None
+        self, caller, skip: int = 0, limit: int = 10
     ) -> tuple[list[Task], int]:
         raise NotImplementedError
 
@@ -75,15 +76,27 @@ class OnlyManagerCanDeleteTaskError(Exception):
     pass
 
 
+class OnlyEmployeeCanBeAttachedToTask(Exception):
+    pass
+
+
 class TaskService:
-    def __init__(self, repository: TaskGateway):
+    def __init__(self, repository: TaskGateway, user_repository: UserGateway):
         self.repository = repository
+        self.user_repository = user_repository
 
     async def create_task(
         self, caller, task: TaskCreateDTO
     ) -> TaskDTO:
         if caller.role != "manager" and not caller.is_superuser:
-            raise OnlyManagerCanCreateTaskError
+            raise OnlyManagerCanCreateTaskError("Only managers can create tasks")
+
+        employee = await self.user_repository.get_user(task.employee_id)
+        if not employee:
+            raise ValueError("Employee not found")
+
+        if employee.role == "manager":
+            raise OnlyEmployeeCanBeAttachedToTask
 
         db_task = await self.repository.create(task)
         return TaskDTO(
@@ -101,40 +114,44 @@ class TaskService:
     async def get_task(self, task_id: UUID) -> Optional[TaskDTO]:
         task = await self.repository.get(task_id)
         if not task:
-            return None
+            raise ValueError("Task not found")
+
         return TaskDTO(title=task.title, description=task.description, status=task.status, progress=task.progress, manager_id=task.manager_id, employee_id=task.employee_id, deadline=task.deadline, created_at=task.created_at, id=task.id)
 
     async def get_tasks(
         self,
+        caller,
         skip: int = 0,
         limit: int = 10,
-        user_id: Optional[UUID] = None,
     ) -> tuple[int, list[TaskDTO]]:
-        tasks, total = await self.repository.get_all(skip=skip, limit=limit, user_id=user_id)
+        tasks, total = await self.repository.get_all(caller, skip=skip, limit=limit)
         return (
             total,
             [
                 TaskDTO(
-                    title=n.title,
-                    description=n.description,
-                    status=n.status,
-                    progress=n.progress,
-                    employee_id=n.employee_id,
-                    manager_id=n.manager_id,
-                    deadline=n.deadline,
-                    created_at=n.created_at,
-                    id=n.id
-                ) for n in tasks
+                    title=task.title,
+                    description=task.description,
+                    status=task.status,
+                    progress=task.progress,
+                    employee_id=task.employee_id,
+                    manager_id=task.manager_id,
+                    deadline=task.deadline,
+                    created_at=task.created_at,
+                    id=task.id
+                ) for task in tasks
             ]
         )
 
     async def update_task(self, caller, task_id: UUID, task_update: TaskUpdateDTO) -> TaskDTO:
         db_task = await self.repository.get(task_id)
-        if db_task is None:
-            raise ValueError('task not found')
+        if not db_task:
+            raise ValueError("Task not found")
+
+        if db_task.manager_id != caller.id:
+            raise PermissionError("Can not update others person task")
 
         if caller.role != "manager" and not caller.is_superuser:
-            raise OnlyManagerCanUpdateTaskError
+            raise OnlyManagerCanUpdateTaskError("Only managers can update task")
 
         update_task = await self.repository.update(task_id, task_update)
         return TaskDTO(title=update_task.title, description=update_task.description, status=update_task.status,
@@ -144,9 +161,13 @@ class TaskService:
     async def delete_task(self, caller, task_id: UUID) -> bool:
         db_task = await self.repository.get(task_id)
         if not db_task:
-            raise ValueError('task not found')
+            raise ValueError("Task not found")
+
+        if db_task.manager_id != caller.id:
+            raise PermissionError("Can not delete others person task")
 
         if caller.role != "manager" and not caller.is_superuser:
-            raise OnlyManagerCanDeleteTaskError
+            raise OnlyManagerCanDeleteTaskError("Only managers can delete task")
+
         is_deleted = await self.repository.delete(task_id)
         return is_deleted
