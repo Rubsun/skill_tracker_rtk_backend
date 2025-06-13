@@ -1,8 +1,8 @@
 """Create basic tables
 
-Revision ID: 62e6bcd9a179
+Revision ID: d505cb9bcde4
 Revises: 
-Create Date: 2025-06-05 23:19:01.936347
+Create Date: 2025-06-13 14:03:36.340616
 
 """
 from typing import Sequence, Union
@@ -10,12 +10,13 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 import os
+import fastapi_users_db_sqlalchemy
 
 from migrations.utils.triggers import apply_sql_files_from_directory, drop_triggers_and_functions_from_directory
 
 
 # revision identifiers, used by Alembic.
-revision: str = '62e6bcd9a179'
+revision: str = 'd505cb9bcde4'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -40,15 +41,16 @@ def upgrade() -> None:
     schema='public'
     )
     op.create_table('users',
-    sa.Column('id', sa.Uuid(), nullable=False),
-    sa.Column('given_name', sa.String(length=50), nullable=False),
-    sa.Column('family_name', sa.String(length=100), nullable=False),
-    sa.Column('username', sa.String(length=100), nullable=False),
-    sa.Column('password_hash', sa.String(length=255), nullable=False),
+    sa.Column('id', fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False),
+    sa.Column('email', sa.String(length=320), nullable=False),
+    sa.Column('hashed_password', sa.String(length=1024), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('is_superuser', sa.Boolean(), nullable=False),
+    sa.Column('is_verified', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_users')),
-    sa.UniqueConstraint('username', name=op.f('uq_users_username')),
     schema='public'
     )
+    op.create_index(op.f('ix_public_users_email'), 'users', ['email'], unique=True, schema='public')
     op.create_table('courses',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('title', sa.String(length=200), nullable=False),
@@ -57,7 +59,7 @@ def upgrade() -> None:
     sa.Column('is_produced', sa.Boolean(), nullable=False),
     sa.Column('deadline', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('manager_id', sa.Uuid(), nullable=False),
+    sa.Column('manager_id', fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False),
     sa.CheckConstraint('passing_percent >= 0 AND passing_percent <= 100', name=op.f('ck_courses_chk_passing_percent_range')),
     sa.ForeignKeyConstraint(['manager_id'], ['public.users.id'], name=op.f('fk_courses_manager_id_users'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_courses')),
@@ -66,7 +68,7 @@ def upgrade() -> None:
     op.create_table('user_roles',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('role', sa.Enum('manager', 'employee', name='userroleenum'), nullable=False),
-    sa.Column('user_id', sa.Uuid(), nullable=False),
+    sa.Column('user_id', fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['public.users.id'], name=op.f('fk_user_roles_user_id_users'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_user_roles')),
     schema='public'
@@ -92,7 +94,7 @@ def upgrade() -> None:
     sa.Column('is_completed', sa.Boolean(), nullable=False),
     sa.Column('assigned_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('course_id', sa.Uuid(), nullable=False),
-    sa.Column('employee_id', sa.Uuid(), nullable=False),
+    sa.Column('employee_id', fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False),
     sa.ForeignKeyConstraint(['course_id'], ['public.courses.id'], name=op.f('fk_course_employees_course_id_courses'), ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['employee_id'], ['public.users.id'], name=op.f('fk_course_employees_employee_id_users'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_course_employees')),
@@ -104,7 +106,7 @@ def upgrade() -> None:
     sa.Column('text', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('content_id', sa.Uuid(), nullable=False),
-    sa.Column('user_id', sa.Uuid(), nullable=False),
+    sa.Column('user_id', fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False),
     sa.ForeignKeyConstraint(['content_id'], ['public.contents.id'], name=op.f('fk_comments_content_id_contents'), ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['public.users.id'], name=op.f('fk_comments_user_id_users'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_comments')),
@@ -123,6 +125,7 @@ def downgrade() -> None:
     op.drop_table('contents', schema='public')
     op.drop_table('user_roles', schema='public')
     op.drop_table('courses', schema='public')
+    op.drop_index(op.f('ix_public_users_email'), table_name='users', schema='public')
     op.drop_table('users', schema='public')
     op.drop_table('theories', schema='public')
     op.drop_table('tasks', schema='public')

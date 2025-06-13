@@ -8,11 +8,11 @@ def test_check_course_employee_role_raises_error(db_session):
     Test that associating a CourseEmployee with a user who does not have the employee role raises a DBAPIError.
     Ensures only users with the employee role can be registered for courses.
     """
-    not_employee = User(given_name='not_employee', family_name='not_employee', username='not_employee', password_hash='hash')
+    not_employee = User(email='not_employee@example.com', hashed_password='hash', is_active=True)
     db_session.add(not_employee)
     db_session.flush()
 
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     user_role = UserRole(user=manager, role=UserRoleEnum.manager)
@@ -39,7 +39,7 @@ def test_check_course_employee_role_forbidden_for_creator(db_session):
     Test that the course manager cannot register as an employee in their own course.
     Ensures that a user cannot enroll in a course they created.
     """
-    employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
+    employee = User(email='employee@example.com', hashed_password='hash', is_active=True)
     db_session.add(employee)
 
     employee_role = UserRole(user=employee, role=UserRoleEnum.employee)
@@ -47,7 +47,7 @@ def test_check_course_employee_role_forbidden_for_creator(db_session):
 
     db_session.flush()
 
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     manager_role = UserRole(user=manager, role=UserRoleEnum.manager)
@@ -80,7 +80,7 @@ def test_check_course_employee_role_passes(db_session):
     Test that associating a CourseEmployee with a valid employee user commits successfully.
     Validates role-based restrictions on course enrollment.
     """
-    employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
+    employee = User(email='employee@example.com', hashed_password='hash', is_active=True)
     db_session.add(employee)
 
     user_role = UserRole(user=employee, role=UserRoleEnum.employee)
@@ -88,7 +88,7 @@ def test_check_course_employee_role_passes(db_session):
 
     db_session.flush()
 
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     user_role = UserRole(user=manager, role=UserRoleEnum.manager)

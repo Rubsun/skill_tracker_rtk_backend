@@ -7,7 +7,7 @@ def test_notify_manager_course_comment(db_session):
     Test that a manager receives a notification when a user comments on their course, 
     but does not receive a notification if they comment on their own course.
     """
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     manager_role = UserRole(user=manager, role=UserRoleEnum.manager)
@@ -26,7 +26,7 @@ def test_notify_manager_course_comment(db_session):
 
     db_session.flush()
 
-    employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
+    employee = User(email='employee@example.com', hashed_password='hash', is_active=True)
     db_session.add(employee)
 
     employee_role = UserRole(user=employee, role=UserRoleEnum.employee)
@@ -41,7 +41,7 @@ def test_notify_manager_course_comment(db_session):
 
     notification = db_session.query(Notification).filter_by(user_id=manager.id).first()
     assert notification is not None
-    assert 'Under your course "title", user employee left a comment!' in notification.message
+    assert 'Under your course "title", user employee@example.com left a comment!' in notification.message
 
     comment_by_manager = Comment(text="text", content_id=content.id, user_id=manager.id)
     db_session.add(comment_by_manager)

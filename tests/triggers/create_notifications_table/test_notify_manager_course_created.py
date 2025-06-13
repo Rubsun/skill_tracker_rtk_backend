@@ -8,7 +8,7 @@ def test_notify_manager_course_produced_adds_notification(db_session):
     a notification is automatically created. Verifies the functionality of
     trg_notify_manager_course_produced trigger.
     """
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     manager_role = UserRole(user=manager, role=UserRoleEnum.manager)

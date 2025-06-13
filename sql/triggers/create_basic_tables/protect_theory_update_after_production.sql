@@ -3,6 +3,15 @@ RETURNS TRIGGER AS $$
 DECLARE
     course_status BOOLEAN;
 BEGIN
+    /*
+     * Запрещает обновление записи теории (theories),
+     * если связанный с ней курс (через contents) уже помечен как произведённый (is_produced = TRUE).
+     *
+     * Выполняется поиск курса по theory_id, связанной записи contents и проверка статуса is_produced.
+     * Если курс произведён — выбрасывает исключение.
+     *
+     * Триггер срабатывает ДО обновления записи в таблице theories.
+     */
     SELECT is_produced INTO course_status
     FROM contents c
     JOIN courses cr ON c.course_id = cr.id

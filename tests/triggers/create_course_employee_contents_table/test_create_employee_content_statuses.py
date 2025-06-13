@@ -8,7 +8,7 @@ def test_create_course_employee_contents(db_session):
     CourseEmployeeContent entries are created for all course contents with a 'pending' status.
     Validates automatic status creation on course enrollment.
     """
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     user_role = UserRole(user=manager, role=UserRoleEnum.manager)
@@ -29,7 +29,7 @@ def test_create_course_employee_contents(db_session):
 
     db_session.flush()
 
-    employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
+    employee = User(email='employee@example.com', hashed_password='hash', is_active=True)
     db_session.add(employee)
 
     user_role = UserRole(user=employee, role=UserRoleEnum.employee)

@@ -1,8 +1,8 @@
 """Create notifications table
 
-Revision ID: 45b3b6fdd5c4
-Revises: ace0ad12e823
-Create Date: 2025-06-05 23:23:06.533405
+Revision ID: aac922822ba4
+Revises: 755b83611af4
+Create Date: 2025-06-13 14:08:39.515160
 
 """
 from typing import Sequence, Union
@@ -10,13 +10,14 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 import os
+import fastapi_users_db_sqlalchemy
 
 from migrations.utils.triggers import apply_sql_files_from_directory, drop_triggers_and_functions_from_directory
 
 
 # revision identifiers, used by Alembic.
-revision: str = '45b3b6fdd5c4'
-down_revision: Union[str, None] = 'ace0ad12e823'
+revision: str = 'aac922822ba4'
+down_revision: Union[str, None] = '755b83611af4'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -31,27 +32,27 @@ def upgrade() -> None:
     sa.Column('message', sa.Text(), nullable=False),
     sa.Column('is_read', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('user_id', sa.Uuid(), nullable=False),
+    sa.Column('user_id', fastapi_users_db_sqlalchemy.generics.GUID(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['public.users.id'], name=op.f('fk_notifications_user_id_users'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_notifications')),
     schema='public'
     )
-    op.drop_constraint(op.f('fk_comments_user_id_users'), 'comments', type_='foreignkey')
     op.drop_constraint(op.f('fk_comments_content_id_contents'), 'comments', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_comments_user_id_users'), 'comments', 'users', ['user_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
+    op.drop_constraint(op.f('fk_comments_user_id_users'), 'comments', type_='foreignkey')
     op.create_foreign_key(op.f('fk_comments_content_id_contents'), 'comments', 'contents', ['content_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_comments_user_id_users'), 'comments', 'users', ['user_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
     op.drop_constraint(op.f('fk_contents_course_id_courses'), 'contents', type_='foreignkey')
     op.drop_constraint(op.f('fk_contents_theory_id_theories'), 'contents', type_='foreignkey')
     op.drop_constraint(op.f('fk_contents_task_id_tasks'), 'contents', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_contents_theory_id_theories'), 'contents', 'theories', ['theory_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
-    op.create_foreign_key(op.f('fk_contents_task_id_tasks'), 'contents', 'tasks', ['task_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_contents_theory_id_theories'), 'contents', 'theories', ['theory_id'], ['id'], source_schema='public', referent_schema='public', ondelete='SET NULL')
     op.create_foreign_key(op.f('fk_contents_course_id_courses'), 'contents', 'courses', ['course_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
-    op.drop_constraint(op.f('fk_course_employee_contents_course_employee_id_course_employees'), 'course_employee_contents', type_='foreignkey')
+    op.create_foreign_key(op.f('fk_contents_task_id_tasks'), 'contents', 'tasks', ['task_id'], ['id'], source_schema='public', referent_schema='public', ondelete='SET NULL')
     op.drop_constraint(op.f('fk_course_employee_contents_content_id_contents'), 'course_employee_contents', type_='foreignkey')
+    op.drop_constraint(op.f('fk_course_employee_contents_course_employee_id_course_employees'), 'course_employee_contents', type_='foreignkey')
     op.create_foreign_key(op.f('fk_course_employee_contents_course_employee_id_course_employees'), 'course_employee_contents', 'course_employees', ['course_employee_id'], ['id'], source_schema='public', referent_schema='public')
     op.create_foreign_key(op.f('fk_course_employee_contents_content_id_contents'), 'course_employee_contents', 'contents', ['content_id'], ['id'], source_schema='public', referent_schema='public')
-    op.drop_constraint(op.f('fk_course_employees_employee_id_users'), 'course_employees', type_='foreignkey')
     op.drop_constraint(op.f('fk_course_employees_course_id_courses'), 'course_employees', type_='foreignkey')
+    op.drop_constraint(op.f('fk_course_employees_employee_id_users'), 'course_employees', type_='foreignkey')
     op.create_foreign_key(op.f('fk_course_employees_employee_id_users'), 'course_employees', 'users', ['employee_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
     op.create_foreign_key(op.f('fk_course_employees_course_id_courses'), 'course_employees', 'courses', ['course_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
     op.drop_constraint(op.f('fk_courses_manager_id_users'), 'courses', type_='foreignkey')
@@ -72,22 +73,22 @@ def downgrade() -> None:
     op.create_foreign_key(op.f('fk_courses_manager_id_users'), 'courses', 'users', ['manager_id'], ['id'], ondelete='CASCADE')
     op.drop_constraint(op.f('fk_course_employees_course_id_courses'), 'course_employees', schema='public', type_='foreignkey')
     op.drop_constraint(op.f('fk_course_employees_employee_id_users'), 'course_employees', schema='public', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_course_employees_course_id_courses'), 'course_employees', 'courses', ['course_id'], ['id'], ondelete='CASCADE')
     op.create_foreign_key(op.f('fk_course_employees_employee_id_users'), 'course_employees', 'users', ['employee_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_course_employees_course_id_courses'), 'course_employees', 'courses', ['course_id'], ['id'], ondelete='CASCADE')
     op.drop_constraint(op.f('fk_course_employee_contents_content_id_contents'), 'course_employee_contents', schema='public', type_='foreignkey')
     op.drop_constraint(op.f('fk_course_employee_contents_course_employee_id_course_employees'), 'course_employee_contents', schema='public', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_course_employee_contents_content_id_contents'), 'course_employee_contents', 'contents', ['content_id'], ['id'])
     op.create_foreign_key(op.f('fk_course_employee_contents_course_employee_id_course_employees'), 'course_employee_contents', 'course_employees', ['course_employee_id'], ['id'])
-    op.drop_constraint(op.f('fk_contents_course_id_courses'), 'contents', schema='public', type_='foreignkey')
+    op.create_foreign_key(op.f('fk_course_employee_contents_content_id_contents'), 'course_employee_contents', 'contents', ['content_id'], ['id'])
     op.drop_constraint(op.f('fk_contents_task_id_tasks'), 'contents', schema='public', type_='foreignkey')
+    op.drop_constraint(op.f('fk_contents_course_id_courses'), 'contents', schema='public', type_='foreignkey')
     op.drop_constraint(op.f('fk_contents_theory_id_theories'), 'contents', schema='public', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_contents_task_id_tasks'), 'contents', 'tasks', ['task_id'], ['id'], ondelete='CASCADE')
-    op.create_foreign_key(op.f('fk_contents_theory_id_theories'), 'contents', 'theories', ['theory_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_contents_task_id_tasks'), 'contents', 'tasks', ['task_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(op.f('fk_contents_theory_id_theories'), 'contents', 'theories', ['theory_id'], ['id'], ondelete='SET NULL')
     op.create_foreign_key(op.f('fk_contents_course_id_courses'), 'contents', 'courses', ['course_id'], ['id'], ondelete='CASCADE')
-    op.drop_constraint(op.f('fk_comments_content_id_contents'), 'comments', schema='public', type_='foreignkey')
     op.drop_constraint(op.f('fk_comments_user_id_users'), 'comments', schema='public', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_comments_content_id_contents'), 'comments', 'contents', ['content_id'], ['id'], ondelete='CASCADE')
+    op.drop_constraint(op.f('fk_comments_content_id_contents'), 'comments', schema='public', type_='foreignkey')
     op.create_foreign_key(op.f('fk_comments_user_id_users'), 'comments', 'users', ['user_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_comments_content_id_contents'), 'comments', 'contents', ['content_id'], ['id'], ondelete='CASCADE')
     op.drop_table('notifications', schema='public')
     # ### end Alembic commands ###
 

@@ -1,5 +1,6 @@
 from uuid import UUID, uuid4
 from typing import List
+from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
 from sqlalchemy import (
     String, ForeignKey, Text, Integer, DateTime, Enum, Boolean, UniqueConstraint, CheckConstraint
 )
@@ -10,31 +11,15 @@ from .meta import Base
 from .enums import UserRoleEnum, ContentStatusEnum
 
 
-class User(Base):
+class User(SQLAlchemyBaseUserTableUUID, Base):
     """
-    The model for users in the system.
-
-    Attributes:
-        id (UUID): The unique identifier for the user (primary key).
-        given_name (str): The user's first name, non-null, max 50 chars.
-        family_name (str): The user's last name, non-null, max 100 chars.
-        username (str): The user's unique username, non-null, max 100 chars.
-        password_hash (str): The hashed password of the user, non-null, max 255 chars.
-
-    Relationships:
-        roles (List[UserRole]): A relationship with the UserRole model, indicating the roles assigned to the user.
-        manager_courses (List[Course]): A relationship with the Course model, indicating the courses managed by the user.
-        employee_courses (List[CourseEmployee]): A relationship with the CourseEmployee model, indicating the courses assigned to the user.
-        comments (List[Comment]): A relationship with the Comment model, indicating the comments made by the user.
-        notifications (List[Notification]): A relationship with the Notification model, indicating the notifications for user.
+    User model compatible with FastAPI Users and includes custom fields and relationships.
     """
     __tablename__ = 'users'
 
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    given_name: Mapped[str] = mapped_column(String(50), nullable=False)
-    family_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    # given_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    # family_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
 
     user_roles: Mapped[List['UserRole']] = relationship('UserRole', back_populates='user', cascade="all, delete-orphan")
     manager_courses: Mapped[List['Course']] = relationship('Course', back_populates='manager', cascade="all, delete-orphan")

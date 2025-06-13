@@ -1,6 +1,15 @@
 CREATE OR REPLACE FUNCTION prevent_enroll_unproduced_courses()
 RETURNS TRIGGER AS $$
 BEGIN
+    /*
+     * Запрещает регистрацию пользователя на курс (course_employees),
+     * если курс ещё не произведён (is_produced != TRUE).
+     *
+     * При попытке добавить запись, где course_id с курсом без production,
+     * выбрасывается исключение.
+     *
+     * Триггер срабатывает ДО вставки записи в таблицу course_employees.
+     */
     IF NOT EXISTS (
         SELECT 1 FROM courses
         WHERE id = NEW.course_id AND is_produced = TRUE

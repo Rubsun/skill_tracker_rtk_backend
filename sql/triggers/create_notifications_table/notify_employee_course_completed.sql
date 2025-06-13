@@ -8,10 +8,21 @@ DECLARE
   course_title TEXT;
   _is_completed BOOLEAN;
   _manager_id UUID;
-  employee_username TEXT;
+  employee_email TEXT;
   _passing_percent INT;
   done_percent NUMERIC;
 BEGIN
+  /*
+   * Отслеживает выполнение пользователем курса.
+   *
+   * При обновлении статуса содержимого курса (course_employee_contents.status),
+   * проверяет процент выполненных содержимых относительно общего количества.
+   * Если процент выполненных содержимых >= проходного процента курса,
+   * создаёт уведомления для пользователя и менеджера курса,
+   * а также обновляет поле is_completed в course_employees.
+   *
+   * Триггер срабатывает ПОСЛЕ обновления поля status в таблице course_employee_contents.
+   */
   SELECT employee_id, course_id, is_completed
   INTO _employee_id, _course_id, _is_completed
   FROM course_employees
@@ -43,7 +54,7 @@ BEGIN
   IF done_percent >= _passing_percent THEN
     SELECT title, manager_id INTO course_title, _manager_id FROM courses WHERE id = _course_id;
 
-    SELECT username INTO employee_username FROM users WHERE id = _employee_id;
+    SELECT email INTO employee_email FROM users WHERE id = _employee_id;
 
     INSERT INTO notifications (id, message, is_read, created_at, user_id)
     VALUES (
@@ -57,7 +68,7 @@ BEGIN
     INSERT INTO notifications (id, message, is_read, created_at, user_id)
     VALUES (
       uuid_generate_v4(),
-      'The user ' || employee_username || ' has successfully completed your "' || course_title || '" course.',
+      'The user ' || employee_email || ' has successfully completed your "' || course_title || '" course.',
       FALSE,
       NOW(),
       _manager_id

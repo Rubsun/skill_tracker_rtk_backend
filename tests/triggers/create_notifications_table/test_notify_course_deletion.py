@@ -6,7 +6,7 @@ def test_notify_course_deletion(db_session):
     """
     Test that when a course is deleted, all enrolled employees receive a notification.
     """
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     manager_role = UserRole(user=manager, role=UserRoleEnum.manager)

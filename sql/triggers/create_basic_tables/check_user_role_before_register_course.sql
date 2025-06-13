@@ -4,6 +4,15 @@ DECLARE
   role_count INT;
   course_manager_id UUID;
 BEGIN
+  /*
+   * Проверяет два условия при регистрации пользователя на курс (таблица course_employees):
+   * 1. Пользователь (employee_id) должен иметь роль 'employee'.
+   * 2. Пользователь не может зарегистрироваться на курс, которым он управляет (не быть менеджером курса).
+   *
+   * Если условия не выполняются, выбрасываются соответствующие исключения.
+   *
+   * Триггер вызывается ДО вставки или обновления записи в таблице course_employees.
+   */
   SELECT COUNT(*) INTO role_count
   FROM user_roles
   WHERE user_id = NEW.employee_id AND role = 'employee';

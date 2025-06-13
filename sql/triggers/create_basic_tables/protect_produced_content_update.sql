@@ -3,6 +3,15 @@ RETURNS TRIGGER AS $$
 DECLARE
     course_status BOOLEAN;
 BEGIN
+    /*
+     * Ограничивает обновление содержимого курса (таблица contents),
+     * если курс уже помечен как "produced" (is_produced = TRUE).
+     *
+     * После производства курса можно изменять только поле deadline.
+     * Попытка изменить title, task_id, theory_id, course_id или created_at вызовет исключение.
+     *
+     * Триггер вызывается ДО обновления записи.
+     */
     SELECT is_produced INTO course_status FROM courses WHERE id = OLD.course_id;
 
     IF course_status = TRUE THEN

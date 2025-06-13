@@ -6,7 +6,7 @@ def test_notify_manager_course_enrollment(db_session):
     """
     Test that a manager receives a notification when a user enrolls in their course.
     """
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     manager_role = UserRole(user=manager, role=UserRoleEnum.manager)
@@ -19,7 +19,7 @@ def test_notify_manager_course_enrollment(db_session):
 
     db_session.flush()
 
-    employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
+    employee = User(email='employee@example.com', hashed_password='hash', is_active=True)
     db_session.add(employee)
 
     employee_role = UserRole(user=employee, role=UserRoleEnum.employee)
@@ -34,4 +34,4 @@ def test_notify_manager_course_enrollment(db_session):
 
     notification = db_session.query(Notification).filter_by(user_id=manager.id).first()
     assert notification is not None
-    assert 'User employee has signed up for your "title" course!' in notification.message
+    assert 'User employee@example.com has signed up for your "title" course!' in notification.message

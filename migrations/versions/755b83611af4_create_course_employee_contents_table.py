@@ -1,8 +1,8 @@
 """Create course_employee_contents table
 
-Revision ID: ace0ad12e823
-Revises: 62e6bcd9a179
-Create Date: 2025-06-05 23:20:44.408108
+Revision ID: 755b83611af4
+Revises: d505cb9bcde4
+Create Date: 2025-06-13 14:06:47.661874
 
 """
 from typing import Sequence, Union
@@ -15,8 +15,8 @@ from migrations.utils.triggers import apply_sql_files_from_directory, drop_trigg
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'ace0ad12e823'
-down_revision: Union[str, None] = '62e6bcd9a179'
+revision: str = '755b83611af4'
+down_revision: Union[str, None] = 'd505cb9bcde4'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -38,16 +38,16 @@ def upgrade() -> None:
     sa.UniqueConstraint('course_employee_id', 'content_id', name='uq_course_employee_content'),
     schema='public'
     )
-    op.drop_constraint(op.f('fk_comments_user_id_users'), 'comments', type_='foreignkey')
     op.drop_constraint(op.f('fk_comments_content_id_contents'), 'comments', type_='foreignkey')
+    op.drop_constraint(op.f('fk_comments_user_id_users'), 'comments', type_='foreignkey')
     op.create_foreign_key(op.f('fk_comments_user_id_users'), 'comments', 'users', ['user_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
     op.create_foreign_key(op.f('fk_comments_content_id_contents'), 'comments', 'contents', ['content_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
-    op.drop_constraint(op.f('fk_contents_course_id_courses'), 'contents', type_='foreignkey')
     op.drop_constraint(op.f('fk_contents_task_id_tasks'), 'contents', type_='foreignkey')
     op.drop_constraint(op.f('fk_contents_theory_id_theories'), 'contents', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_contents_theory_id_theories'), 'contents', 'theories', ['theory_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
+    op.drop_constraint(op.f('fk_contents_course_id_courses'), 'contents', type_='foreignkey')
     op.create_foreign_key(op.f('fk_contents_course_id_courses'), 'contents', 'courses', ['course_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
-    op.create_foreign_key(op.f('fk_contents_task_id_tasks'), 'contents', 'tasks', ['task_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_contents_theory_id_theories'), 'contents', 'theories', ['theory_id'], ['id'], source_schema='public', referent_schema='public', ondelete='SET NULL')
+    op.create_foreign_key(op.f('fk_contents_task_id_tasks'), 'contents', 'tasks', ['task_id'], ['id'], source_schema='public', referent_schema='public', ondelete='SET NULL')
     op.drop_constraint(op.f('fk_course_employees_employee_id_users'), 'course_employees', type_='foreignkey')
     op.drop_constraint(op.f('fk_course_employees_course_id_courses'), 'course_employees', type_='foreignkey')
     op.create_foreign_key(op.f('fk_course_employees_course_id_courses'), 'course_employees', 'courses', ['course_id'], ['id'], source_schema='public', referent_schema='public', ondelete='CASCADE')
@@ -73,15 +73,15 @@ def downgrade() -> None:
     op.create_foreign_key(op.f('fk_course_employees_course_id_courses'), 'course_employees', 'courses', ['course_id'], ['id'], ondelete='CASCADE')
     op.create_foreign_key(op.f('fk_course_employees_employee_id_users'), 'course_employees', 'users', ['employee_id'], ['id'], ondelete='CASCADE')
     op.drop_constraint(op.f('fk_contents_task_id_tasks'), 'contents', schema='public', type_='foreignkey')
-    op.drop_constraint(op.f('fk_contents_course_id_courses'), 'contents', schema='public', type_='foreignkey')
     op.drop_constraint(op.f('fk_contents_theory_id_theories'), 'contents', schema='public', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_contents_theory_id_theories'), 'contents', 'theories', ['theory_id'], ['id'], ondelete='CASCADE')
-    op.create_foreign_key(op.f('fk_contents_task_id_tasks'), 'contents', 'tasks', ['task_id'], ['id'], ondelete='CASCADE')
+    op.drop_constraint(op.f('fk_contents_course_id_courses'), 'contents', schema='public', type_='foreignkey')
     op.create_foreign_key(op.f('fk_contents_course_id_courses'), 'contents', 'courses', ['course_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_contents_theory_id_theories'), 'contents', 'theories', ['theory_id'], ['id'], ondelete='SET NULL')
+    op.create_foreign_key(op.f('fk_contents_task_id_tasks'), 'contents', 'tasks', ['task_id'], ['id'], ondelete='SET NULL')
     op.drop_constraint(op.f('fk_comments_content_id_contents'), 'comments', schema='public', type_='foreignkey')
     op.drop_constraint(op.f('fk_comments_user_id_users'), 'comments', schema='public', type_='foreignkey')
-    op.create_foreign_key(op.f('fk_comments_content_id_contents'), 'comments', 'contents', ['content_id'], ['id'], ondelete='CASCADE')
     op.create_foreign_key(op.f('fk_comments_user_id_users'), 'comments', 'users', ['user_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key(op.f('fk_comments_content_id_contents'), 'comments', 'contents', ['content_id'], ['id'], ondelete='CASCADE')
     op.drop_table('course_employee_contents', schema='public')
     # ### end Alembic commands ###
 

@@ -1,6 +1,15 @@
 CREATE OR REPLACE FUNCTION notify_manager_course_produced()
 RETURNS TRIGGER AS $$
 BEGIN
+  /*
+   * Уведомляет менеджера курса при изменении статуса курса на "произведённый".
+   *
+   * При обновлении записи courses,
+   * если is_produced изменился с FALSE на TRUE,
+   * добавляет уведомление менеджеру о публикации курса с названием NEW.title.
+   *
+   * Триггер срабатывает ПОСЛЕ обновления записи courses.
+   */
   IF OLD.is_produced = FALSE AND NEW.is_produced = TRUE THEN
     INSERT INTO notifications (id, message, is_read, created_at, user_id)
     VALUES (

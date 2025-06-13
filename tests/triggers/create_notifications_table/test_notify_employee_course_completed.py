@@ -11,7 +11,7 @@ def test_notify_employee_course_completed_adds_notification(db_session):
     a notification is created for both the employee and the course manager.
     Verifies the functionality of trg_notify_employee_course_completed trigger with passing_percent.
     """
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     manager_role = UserRole(user=manager, role=UserRoleEnum.manager)
@@ -32,7 +32,7 @@ def test_notify_employee_course_completed_adds_notification(db_session):
 
     db_session.flush()
 
-    employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
+    employee = User(email='employee@example.com', hashed_password='hash', is_active=True)
     db_session.add(employee)
 
     employee_role = UserRole(user=employee, role=UserRoleEnum.employee)
@@ -75,7 +75,7 @@ def test_notify_employee_course_completed_adds_notification(db_session):
 
     notifications_for_manager = db_session.query(Notification).filter_by(user_id=manager.id).all()
     assert len(notifications_for_manager) - len(notifications_for_manager_before_change_status) == 1
-    assert 'The user employee has successfully completed your "title" course.' in notifications_for_manager[-1].message
+    assert 'The user employee@example.com has successfully completed your "title" course.' in notifications_for_manager[-1].message
     assert notifications_for_manager[-1].is_read is False
 
     db_session.refresh(course_employee)

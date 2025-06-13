@@ -1,6 +1,15 @@
 CREATE OR REPLACE FUNCTION protect_produced_course_update()
 RETURNS TRIGGER AS $$
 BEGIN
+    /*
+     * Ограничивает обновление курса (таблица courses),
+     * если курс уже помечен как "produced" (OLD.is_produced = TRUE).
+     *
+     * После производства курса разрешается изменять только описание и deadline.
+     * Попытка изменить title, manager_id, is_produced или created_at вызовет исключение.
+     *
+     * Триггер вызывается ДО обновления записи.
+     */
     IF OLD.is_produced = TRUE THEN
         IF (NEW.title IS DISTINCT FROM OLD.title)
            OR (NEW.manager_id IS DISTINCT FROM OLD.manager_id)

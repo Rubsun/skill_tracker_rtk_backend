@@ -6,8 +6,18 @@ DECLARE
     _course_id UUID;
     course_title TEXT;
     _manager_id UUID;
-    user_nickname TEXT;
+    user_email TEXT;
 BEGIN
+    /*
+     * Уведомляет менеджера курса о новом комментарии под содержимым курса.
+     *
+     * При вставке новой записи комментария (comments),
+     * если автор комментария не является менеджером курса,
+     * добавляет уведомление менеджеру о том, что пользователь оставил комментарий
+     * под курсом с названием course_title.
+     *
+     * Триггер срабатывает ПОСЛЕ вставки записи в таблицу comments.
+     */
     SELECT course_id INTO _course_id FROM contents WHERE id = NEW.content_id;
 
     SELECT manager_id INTO _manager_id FROM courses WHERE id = _course_id;
@@ -18,12 +28,12 @@ BEGIN
 
     SELECT title INTO course_title FROM courses WHERE id = _course_id;
 
-    SELECT username INTO user_nickname FROM users WHERE id = NEW.user_id;
+    SELECT email INTO user_email FROM users WHERE id = NEW.user_id;
 
     INSERT INTO notifications (id, message, is_read, created_at, user_id)
     VALUES (
         uuid_generate_v4(),
-        'Under your course "' || course_title || '", user ' || user_nickname || ' left a comment!',
+        'Under your course "' || course_title || '", user ' || user_email || ' left a comment!',
         FALSE,
         NOW(),
         _manager_id

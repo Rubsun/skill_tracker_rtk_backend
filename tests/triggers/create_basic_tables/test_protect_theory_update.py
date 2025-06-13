@@ -4,7 +4,7 @@ from models.enums import UserRoleEnum
 
 
 def test_protect_theory_update_after_course_produced(db_session):
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     db_session.add(UserRole(user=manager, role=UserRoleEnum.manager))

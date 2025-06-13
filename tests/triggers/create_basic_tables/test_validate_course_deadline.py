@@ -4,7 +4,7 @@ from models.enums import UserRoleEnum
 
 
 def test_validate_course_deadline_not_before_content(db_session):
-    manager = User(given_name='m', family_name='m', username='manager6', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
     db_session.add(manager)
 
     db_session.add(UserRole(user=manager, role=UserRoleEnum.manager))

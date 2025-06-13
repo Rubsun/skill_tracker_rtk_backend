@@ -3,8 +3,8 @@ from models.enums import UserRoleEnum
 
 
 def create_basic_data(db_session):
-    manager = User(given_name='manager', family_name='manager', username='manager', password_hash='hash')
-    employee = User(given_name='employee', family_name='employee', username='employee', password_hash='hash')
+    manager = User(email='manager@example.com', hashed_password='hash', is_active=True)
+    employee = User(email='employee@example.com', hashed_password='hash', is_active=True)
     db_session.add_all([manager, employee])
     db_session.flush()
 
