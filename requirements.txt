@@ -8,3 +8,4 @@ psycopg2==2.9.10
 python-dotenv==1.1.0
 SQLAlchemy==2.0.41
 typing_extensions==4.13.2
+fastapi-users-db-sqlalchemy==7.0.0
