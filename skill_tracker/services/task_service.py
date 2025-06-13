@@ -96,7 +96,7 @@ class TaskService:
             raise ValueError("Employee not found")
 
         if employee.role == "manager":
-            raise OnlyEmployeeCanBeAttachedToTask
+            raise OnlyEmployeeCanBeAttachedToTask("Manager cant attach manager to task")
 
         db_task = await self.repository.create(task)
         return TaskDTO(
