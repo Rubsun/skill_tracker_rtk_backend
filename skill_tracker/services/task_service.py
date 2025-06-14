@@ -8,6 +8,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from loguru import logger
+
 
 @dataclass
 class TaskCreateDTO:
@@ -89,16 +91,20 @@ class TaskService:
         self, caller, task: TaskCreateDTO
     ) -> TaskDTO:
         if caller.role != "manager" and not caller.is_superuser:
+            logger.warning(f"User {caller.id} denied: Only managers can create tasks")
             raise OnlyManagerCanCreateTaskError("Only managers can create tasks")
 
         employee = await self.user_repository.get_user(task.employee_id)
         if not employee:
+            logger.error(f"Employee {task.employee_id} not found")
             raise ValueError("Employee not found")
 
         if employee.role == "manager":
+            logger.error(f"Cannot assign task to manager {employee.id}")
             raise OnlyEmployeeCanBeAttachedToTask("Manager cant attach manager to task")
 
         db_task = await self.repository.create(task)
+        logger.info(f"Task created successfully with ID: {db_task.id}")
         return TaskDTO(
             title=db_task.title,
             description=db_task.description,
@@ -112,10 +118,13 @@ class TaskService:
         )
 
     async def get_task(self, task_id: UUID) -> Optional[TaskDTO]:
+        logger.info(f"Fetching task with ID: {task_id}")
         task = await self.repository.get(task_id)
         if not task:
+            logger.warning(f"Task {task_id} not found")
             raise ValueError("Task not found")
 
+        logger.info(f"Task {task_id} retrieved successfully")
         return TaskDTO(title=task.title, description=task.description, status=task.status, progress=task.progress, manager_id=task.manager_id, employee_id=task.employee_id, deadline=task.deadline, created_at=task.created_at, id=task.id)
 
     async def get_tasks(
@@ -124,7 +133,9 @@ class TaskService:
         skip: int = 0,
         limit: int = 10,
     ) -> tuple[int, list[TaskDTO]]:
+        logger.info(f"User {caller.id} fetching tasks (skip={skip}, limit={limit})")
         tasks, total = await self.repository.get_all(caller, skip=skip, limit=limit)
+        logger.info(f"Retrieved {len(tasks)} tasks, total: {total}")
         return (
             total,
             [
@@ -143,31 +154,41 @@ class TaskService:
         )
 
     async def update_task(self, caller, task_id: UUID, task_update: TaskUpdateDTO) -> TaskDTO:
+        logger.info(f"User {caller.id} attempting to update task {task_id}")
         db_task = await self.repository.get(task_id)
         if not db_task:
+            logger.warning(f"Task {task_id} not found")
             raise ValueError("Task not found")
 
         if db_task.manager_id != caller.id:
+            logger.warning(f"User {caller.id} denied: Cannot update task {task_id} owned by {db_task.manager_id}")
             raise PermissionError("Can not update others person task")
 
         if caller.role != "manager" and not caller.is_superuser:
+            logger.warning(f"User {caller.id} denied: Only managers can update tasks")
             raise OnlyManagerCanUpdateTaskError("Only managers can update task")
 
         update_task = await self.repository.update(task_id, task_update)
+        logger.info(f"Task {task_id} updated successfully")
         return TaskDTO(title=update_task.title, description=update_task.description, status=update_task.status,
                        progress=update_task.progress, employee_id=update_task.employee_id, deadline=update_task.deadline,
                        created_at=update_task.created_at, id=update_task.id, manager_id=update_task.manager_id)
 
     async def delete_task(self, caller, task_id: UUID) -> bool:
+        logger.info(f"User {caller.id} attempting to delete task {task_id}")
         db_task = await self.repository.get(task_id)
         if not db_task:
+            logger.warning(f"Task {task_id} not found")
             raise ValueError("Task not found")
 
         if db_task.manager_id != caller.id:
+            logger.warning(f"User {caller.id} denied: Cannot delete task {task_id} owned by {db_task.manager_id}")
             raise PermissionError("Can not delete others person task")
 
         if caller.role != "manager" and not caller.is_superuser:
+            logger.warning(f"User {caller.id} denied: Only managers can delete tasks")
             raise OnlyManagerCanDeleteTaskError("Only managers can delete task")
 
         is_deleted = await self.repository.delete(task_id)
+        logger.info(f"Task {task_id} deleted: {is_deleted}")
         return is_deleted

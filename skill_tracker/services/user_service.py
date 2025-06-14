@@ -9,6 +9,8 @@ from skill_tracker.db_access.models import User, UserRoleEnum
 from typing import Optional
 from uuid import UUID
 
+from loguru import logger
+
 
 class MainUser(BaseModel):
     given_name: str = Field(..., min_length=1, max_length=50)
@@ -52,17 +54,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
         self.verification_token_secret = secret
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
-        print(f"User {user.id} has registered.")
+        logger.info(f"User {user.id} has registered.")
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Optional[Request] = None
     ):
-        print(f"User {user.id} has forgot their password. Reset token: {token}")
+        logger.info(f"User {user.id} has forgot their password. Reset token: {token}")
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Optional[Request] = None
     ):
-        print(f"Verification requested for user {user.id}. Verification token: {token}")
+        logger.info(f"Verification requested for user {user.id}. Verification token: {token}")
 
 
 class UserService:
@@ -76,8 +78,11 @@ class UserService:
         skip: int = 0,
         limit: int = 10
     ) -> tuple[int, list[User]]:
+        logger.info(f"User {caller.id} requesting employees (skip={skip}, limit={limit})")
         if caller.role != "manager" and not caller.is_superuser:
+            logger.warning(f"User {caller.id} denied: Only managers can get employees")
             raise OnlyManagerCanGetEmployeesError("Only managers can get employees")
 
         employees, total = await self.repository.get_employees(skip=skip, limit=limit)
+        logger.info(f"Retrieved {len(employees)} employees, total: {total}")
         return total, [employee for employee in employees]

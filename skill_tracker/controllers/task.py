@@ -8,11 +8,6 @@ from dishka import AsyncContainer
 
 from skill_tracker.db_access.models import TaskStatusEnum
 from skill_tracker.services.task_service import TaskService, OnlyManagerCanCreateTaskError, TaskCreateDTO, TaskUpdateDTO, OnlyManagerCanUpdateTaskError, OnlyManagerCanDeleteTaskError, OnlyEmployeeCanBeAttachedToTask
-from skill_tracker.metrics import (
-    CREATE_TASK_METHOD_DURATION,
-    GET_ALL_TASKS_METHOD_DURATION,
-    measure_latency,
-)
 from fastapi_users import FastAPIUsers
 from datetime import datetime
 from typing import Optional
@@ -59,7 +54,7 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
 
 
     @router.post("/tasks/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-    @measure_latency(CREATE_TASK_METHOD_DURATION)
+    # @measure_latency(CREATE_TASK_METHOD_DURATION)
     async def create_task(
             task: TaskCreate,
             service: FromDishka[TaskService],
@@ -101,7 +96,7 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
         return task
 
     @router.get("/tasks/")
-    @measure_latency(GET_ALL_TASKS_METHOD_DURATION)
+    # @measure_latency(GET_ALL_TASKS_METHOD_DURATION)
     async def get_tasks(
             service: FromDishka[TaskService],
             skip: int = 0,
