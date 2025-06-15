@@ -41,7 +41,7 @@ def upgrade() -> None:
     sa.Column('title', sa.String(length=200), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('deadline', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('status', sa.Enum('pending', 'incorrect', 'done', name='taskstatusenum'), nullable=False),
+    sa.Column('status', sa.Enum('pending', 'inprogress', 'done', name='taskstatusenum'), nullable=False),
     sa.Column('progress', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.CheckConstraint('progress >= 0 AND progress <= 100', name='chk_progress_range'),

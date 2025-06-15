@@ -160,13 +160,17 @@ class TaskService:
             logger.warning(f"Task {task_id} not found")
             raise ValueError("Task not found")
 
-        if db_task.manager_id != caller.id:
-            logger.warning(f"User {caller.id} denied: Cannot update task {task_id} owned by {db_task.manager_id}")
-            raise PermissionError("Can not update others person task")
+        if caller.role == "employee" and not caller.is_superuser:
+            if db_task.employee_id != caller.id:
+                raise PermissionError("Can not update others person task")
 
-        if caller.role != "manager" and not caller.is_superuser:
-            logger.warning(f"User {caller.id} denied: Only managers can update tasks")
-            raise OnlyManagerCanUpdateTaskError("Only managers can update task")
+            allowed_fields = {"status", "progress"}
+            for field, value in task_update.__dict__.items():
+                if value is not None and field not in allowed_fields:
+                    raise PermissionError("Employees can update only status or progress")
+
+        elif caller.role != "manager" and not caller.is_superuser:
+            raise OnlyManagerCanUpdateTaskError
 
         update_task = await self.repository.update(task_id, task_update)
         logger.info(f"Task {task_id} updated successfully")

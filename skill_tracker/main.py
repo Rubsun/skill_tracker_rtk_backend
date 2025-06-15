@@ -4,8 +4,9 @@ from typing import AsyncGenerator
 from dishka import AsyncContainer, Scope
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
-from prometheus_fastapi_instrumentator import Instrumentator
+from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from skill_tracker.controllers.comment import get_comments_controller
 from skill_tracker.controllers.task import get_tasks_controller
@@ -32,7 +33,13 @@ async def lifespan(app_: FastAPI) -> AsyncGenerator[None, None]:
 
 def create_app(ioc_container: AsyncContainer):
     application = FastAPI(title="RTK Service", version="1.0.0", lifespan=lifespan)
-
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     instrumentator = Instrumentator(
         should_group_status_codes=False,
         should_instrument_requests_inprogress=True,

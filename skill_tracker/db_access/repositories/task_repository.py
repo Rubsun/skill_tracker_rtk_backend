@@ -53,11 +53,16 @@ class TaskRepository(TaskGateway):
         if not task:
             return None
 
-        task.title = task_update.title
-        task.description = task_update.description
-        task.deadline = task_update.deadline
-        task.status = task_update.status
-        task.progress = task_update.progress
+        if task_update.title is not None:
+            task.title = task_update.title
+        if task_update.description is not None:
+            task.description = task_update.description
+        if task_update.deadline is not None:
+            task.deadline = task_update.deadline
+        if task_update.status is not None:
+            task.status = task_update.status
+        if task_update.progress is not None:
+            task.progress = task_update.progress
 
         await self.session.commit()
         await self.session.refresh(task)

@@ -11,7 +11,7 @@ import enum
 
 class TaskStatusEnum(str, enum.Enum):
     pending = "pending"
-    incorrect = "incorrect"
+    inprogress = "inprogress"
     done = "done"
 
 
