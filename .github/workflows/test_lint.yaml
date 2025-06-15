@@ -1,0 +1,39 @@
+name: Flake8 Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies with uv
+        run: |
+           uv sync
+
+      - name: Lint with ruff
+        run: |
+          uv run ruff check .
+
+      - name: Test with pytest
+        env:
+          SKILL_TRACKER_CONFIG_PATH: configs/app_test.toml
+        run: |
+          uv run pytest
