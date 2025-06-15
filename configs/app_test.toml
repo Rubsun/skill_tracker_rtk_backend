@@ -1,0 +1,9 @@
+[auth]
+secret = "SECRET"
+
+[db]
+user = "test"
+password = "test"
+name = "test"
+host = "127.0.0.1"
+port = 5433
