@@ -751,7 +751,7 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{job=\"docker-logs\"} | json | line_format `{{.log}}`",
+          "expr": "{service_name=\"skill_tracker-skill_tracker_service\"}",
           "hide": false,
           "queryType": "range",
           "refId": "A"
