@@ -51,7 +51,8 @@ class CommentRepository(CommentGateway):
         if not comment:
             return None
 
-        comment.text = comment_update.text
+        if comment_update.text is not None:
+            comment.text = comment_update.text
 
         await self.session.commit()
         await self.session.refresh(comment)
