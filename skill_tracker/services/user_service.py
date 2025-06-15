@@ -1,15 +1,12 @@
-from typing import Protocol
-
-from fastapi import Request
-from fastapi_users import BaseUserManager, UUIDIDMixin, FastAPIUsers
-from fastapi_users import schemas
-from pydantic import Field, BaseModel
-
-from skill_tracker.db_access.models import User, UserRoleEnum
-from typing import Optional
+from typing import Optional, Protocol
 from uuid import UUID
 
+from fastapi import Request
+from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, schemas
 from loguru import logger
+from pydantic import BaseModel, Field
+
+from skill_tracker.db_access.models import User, UserRoleEnum
 
 
 class MainUser(BaseModel):

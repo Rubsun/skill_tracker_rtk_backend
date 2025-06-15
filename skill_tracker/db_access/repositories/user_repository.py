@@ -1,11 +1,11 @@
+from typing import Optional
 from uuid import UUID
 
 from fastapi_users.db import SQLAlchemyUserDatabase
-from skill_tracker.db_access.models import User
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
-from typing import Optional
+from skill_tracker.db_access.models import User
 
 
 class UserRepository:

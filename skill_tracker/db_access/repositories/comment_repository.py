@@ -1,8 +1,9 @@
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+
 from skill_tracker.db_access.models import Comment
 from skill_tracker.services.comment_service import CommentCreateDTO, CommentGateway, CommentUpdateDTO
 

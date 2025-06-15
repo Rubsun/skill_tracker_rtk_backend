@@ -1,18 +1,15 @@
-from uuid import UUID
-
-from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, HTTPException, status, Depends
-
-from dishka import AsyncContainer
-
-from skill_tracker.services.comment_service import CommentService, CommentCreateDTO, CommentUpdateDTO
 from datetime import datetime
 from typing import Optional
-from fastapi_users import FastAPIUsers
-from skill_tracker.db_access.models import User
+from uuid import UUID
 
+from dishka import AsyncContainer, FromDishka
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_users import FastAPIUsers
 from pydantic import BaseModel, ConfigDict
+
+from skill_tracker.db_access.models import User
+from skill_tracker.services.comment_service import CommentCreateDTO, CommentService, CommentUpdateDTO
 
 
 class CommentCreate(BaseModel):
@@ -109,7 +106,7 @@ async def get_comments_controller(container: AsyncContainer) -> APIRouter:
             user: User = Depends(fastapi_users.current_user(active=True))
     ):
         try:
-            is_deleted = await service.delete_comment(user, comment_id)
+            await service.delete_comment(user, comment_id)
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
         except PermissionError as e:

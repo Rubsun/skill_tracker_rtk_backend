@@ -1,14 +1,12 @@
-from typing import Protocol
-
-
-from skill_tracker.db_access.models import Comment
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Protocol
 from uuid import UUID
 
-from skill_tracker.services.task_service import TaskGateway
 from loguru import logger
+
+from skill_tracker.db_access.models import Comment
+from skill_tracker.services.task_service import TaskGateway
 
 
 @dataclass

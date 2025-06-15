@@ -1,14 +1,12 @@
-from typing import Protocol
-
-
-from skill_tracker.db_access.models import Task, TaskStatusEnum
-from skill_tracker.services.user_service import UserGateway
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Protocol
 from uuid import UUID
 
 from loguru import logger
+
+from skill_tracker.db_access.models import Task, TaskStatusEnum
+from skill_tracker.services.user_service import UserGateway
 
 
 @dataclass

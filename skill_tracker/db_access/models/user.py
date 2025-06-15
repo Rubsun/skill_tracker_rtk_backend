@@ -1,14 +1,12 @@
-from fastapi_users.db import SQLAlchemyBaseUserTableUUID
+import enum
 from datetime import datetime, timezone
-from .base import Base
-
 from typing import List
-from sqlalchemy import (
-    String, Enum, DateTime
-)
+
+from fastapi_users.db import SQLAlchemyBaseUserTableUUID
+from sqlalchemy import DateTime, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import enum
+from .base import Base
 
 
 class UserRoleEnum(str, enum.Enum):
@@ -25,4 +23,4 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False,
                                                  default=lambda: datetime.now(timezone.utc))
 
-    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='user', cascade="all, delete-orphan")
+    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='user', cascade="all, delete-orphan")  # noqa

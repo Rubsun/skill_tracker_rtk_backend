@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
+
 
 class Comment(Base):
     __tablename__ = 'comments'
@@ -15,5 +16,5 @@ class Comment(Base):
     task_id: Mapped[UUID] = mapped_column(ForeignKey('tasks.id', ondelete="CASCADE"), nullable=False)
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
 
-    task: Mapped['Task'] = relationship('Task', back_populates='comments')
-    user: Mapped['User'] = relationship('User', back_populates='comments')
+    task: Mapped['Task'] = relationship('Task', back_populates='comments')  # noqa
+    user: Mapped['User'] = relationship('User', back_populates='comments')  # noqa

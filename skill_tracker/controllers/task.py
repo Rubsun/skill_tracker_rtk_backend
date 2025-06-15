@@ -1,19 +1,23 @@
-from uuid import UUID
-
-from dishka import FromDishka
-from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, HTTPException, status, Depends
-
-from dishka import AsyncContainer
-
-from skill_tracker.db_access.models import TaskStatusEnum
-from skill_tracker.services.task_service import TaskService, OnlyManagerCanCreateTaskError, TaskCreateDTO, TaskUpdateDTO, OnlyManagerCanUpdateTaskError, OnlyManagerCanDeleteTaskError, OnlyEmployeeCanBeAttachedToTask
-from fastapi_users import FastAPIUsers
 from datetime import datetime
 from typing import Optional
-from skill_tracker.db_access.models import User
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, FutureDatetime, Field
+from dishka import AsyncContainer, FromDishka
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_users import FastAPIUsers
+from pydantic import BaseModel, ConfigDict, Field, FutureDatetime
+
+from skill_tracker.db_access.models import TaskStatusEnum, User
+from skill_tracker.services.task_service import (
+    OnlyEmployeeCanBeAttachedToTask,
+    OnlyManagerCanCreateTaskError,
+    OnlyManagerCanDeleteTaskError,
+    OnlyManagerCanUpdateTaskError,
+    TaskCreateDTO,
+    TaskService,
+    TaskUpdateDTO,
+)
 
 
 class TaskBase(BaseModel):
@@ -132,7 +136,7 @@ async def get_tasks_controller(container: AsyncContainer) -> APIRouter:
             user: User = Depends(fastapi_users.current_user(active=True))
     ):
         try:
-            is_deleted = await service.delete_task(user, task_id)
+            await service.delete_task(user, task_id)
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         except PermissionError as e:

@@ -1,7 +1,7 @@
 from .base import Base
+from .comment import Comment
 from .task import Task, TaskStatusEnum
 from .user import User, UserRoleEnum
-from .comment import Comment
 
 __all__ = (
     "Base",

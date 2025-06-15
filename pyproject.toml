@@ -10,10 +10,90 @@ dependencies = [
     "dishka>=1.6.0",
     "fastapi>=0.115.12",
     "fastapi-users[sqlalchemy]>=14.0.1",
+    "httpx>=0.28.1",
+    "isort>=6.0.1",
     "loguru>=0.7.3",
     "prometheus-fastapi-instrumentator>=7.1.0",
+    "pytest>=8.4.0",
+    "pytest-asyncio>=1.0.0",
     "ruff>=0.11.13",
     "sqlalchemy>=2.0.41",
     "toml>=0.10.2",
     "uvicorn>=0.34.3",
 ]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+pythonpath = [
+    "."
+]
+# Suppress specific warnings
+filterwarnings = [
+    # Suppress PytestDeprecationWarning about asyncio_default_fixture_loop_scope being unset
+    "ignore:The configuration option \"asyncio_default_fixture_loop_scope\" is unset:DeprecationWarning",
+    # Suppress DeprecationWarning about no current event loop
+    "ignore:There is no current event loop:DeprecationWarning",
+    # Suppress DeprecationWarning about redefining the event_loop fixture
+    "ignore:The event_loop fixture provided by pytest-asyncio has been redefined:DeprecationWarning"
+]
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".idea",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "venv",
+    "*/migrations/versions",
+    "tests/"
+]
+
+line-length = 300
+indent-width = 4
+
+# Assume Python 3.11
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+pydocstyle.convention = "pep257"
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+
+# Isort configuration
+[tool.isort]
+include_trailing_comma = true
+use_parentheses = true
+multi_line_output = 3
+line_length = 105
+

@@ -4,26 +4,17 @@ from collections.abc import AsyncGenerator
 
 from dishka import Provider, Scope, make_async_container, provide
 from fastapi_users import FastAPIUsers
-from fastapi_users.authentication import JWTStrategy, BearerTransport, AuthenticationBackend
+from fastapi_users.authentication import AuthenticationBackend, BearerTransport, JWTStrategy
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from skill_tracker.config import Config, load_config
 from skill_tracker.db_access.models import User
-from skill_tracker.db_access.repositories.task_repository import TaskRepository
-from skill_tracker.services.task_service import (
-    TaskGateway,
-    TaskService,
-)
-from skill_tracker.db_access.repositories.user_repository import UserRepository
-from skill_tracker.services.user_service import (
-    UserGateway,
-    UserManager, UserService,
-)
 from skill_tracker.db_access.repositories.comment_repository import CommentRepository
-from skill_tracker.services.comment_service import (
-    CommentGateway,
-    CommentService,
-)
+from skill_tracker.db_access.repositories.task_repository import TaskRepository
+from skill_tracker.db_access.repositories.user_repository import UserRepository
+from skill_tracker.services.comment_service import CommentGateway, CommentService
+from skill_tracker.services.task_service import TaskGateway, TaskService
+from skill_tracker.services.user_service import UserGateway, UserManager, UserService
 
 
 def config_provider() -> Provider:

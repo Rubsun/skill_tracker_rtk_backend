@@ -1,12 +1,12 @@
+import enum
 from datetime import datetime, timezone
-from uuid import uuid4, UUID
-
-from sqlalchemy import DateTime, String, ForeignKey, Text, Integer, CheckConstraint, Enum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List
+from uuid import UUID, uuid4
+
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
-import enum
 
 
 class TaskStatusEnum(str, enum.Enum):
@@ -28,7 +28,7 @@ class Task(Base):
     progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
-    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='task', cascade="all, delete-orphan")
+    comments: Mapped[List['Comment']] = relationship('Comment', back_populates='task', cascade="all, delete-orphan")  # noqa
 
     __table_args__ = (
         CheckConstraint('progress >= 0 AND progress <= 100', name='chk_progress_range'),

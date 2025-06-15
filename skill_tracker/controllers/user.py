@@ -1,14 +1,19 @@
 from uuid import UUID
 
 from dishka import AsyncContainer, FromDishka
-from skill_tracker.services.user_service import UserService, OnlyManagerCanGetEmployeesError
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import AuthenticationBackend
 
 from skill_tracker.db_access.models import User
-from skill_tracker.services.user_service import UserCreate, UserRead, UserUpdate
+from skill_tracker.services.user_service import (
+    OnlyManagerCanGetEmployeesError,
+    UserCreate,
+    UserRead,
+    UserService,
+    UserUpdate,
+)
 
 
 async def get_users_controller(container: AsyncContainer) -> APIRouter:
