@@ -4,7 +4,7 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { AuthContext } from '../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 
-const API_URL = 'https://learn-anything.ru/api/v1'; // Or your backend URL
+const API_URL = 'http://localhost:8000/api/v1';
 
 // --- Item Viewer Components ---
 

@@ -25,8 +25,13 @@ const RegisterPage = () => {
             navigate('/', { replace: true });
         } catch (err) {
             console.error("Registration failed:", err);
-            // Use a more specific error message from the API if available
-            setError('Не удалось зарегистрироваться. Попробуйте ещё раз.');
+            // Показываем отдельное сообщение, если пользователь уже зарегистрирован
+            if (err.message === 'REGISTER_USER_ALREADY_EXISTS' || err.message === 'REGISTER_USER_ALREDY_EXISTS') {
+                setError('Пользователь с таким email уже существует.');
+            } else {
+                // Use a more specific error message from the API if available
+                setError('Не удалось зарегистрироваться. Попробуйте ещё раз.');
+            }
         } finally {
             setLoading(false);
         }

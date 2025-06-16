@@ -4,7 +4,7 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { AuthContext } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
-const API_URL = 'https://learn-anything.ru/api/v1'; // Or your backend URL
+const API_URL = 'http://localhost:8000/api/v1';
 
 const TaskViewerPage = () => {
     const { taskId } = useParams();
@@ -178,7 +178,7 @@ const TaskViewerPage = () => {
                                  <label htmlFor="progress" className="label">Прогресс ({progress}%)</label>
                                 <input id="progress" type="range" min="0" max="100" value={progress} onChange={e => setProgress(e.target.value)} className="range range-primary"/>
                              </div>
-                             <button type="submit" className="btn btn-primary">Сохранить</button>
+                             <button type="submit" className="btn btn-gradient">Сохранить</button>
                              {error && <p className="text-red-500 mt-2">{error}</p>}
                          </form>
                     </div>
@@ -207,7 +207,7 @@ const TaskViewerPage = () => {
                                                     <div className="space-y-2">
                                                         <textarea className="textarea textarea-bordered w-full" rows="3" value={editingText} onChange={e=>setEditingText(e.target.value)} />
                                                         <div className="flex gap-2">
-                                                            <button className="btn btn-sm btn-primary" onClick={async()=>{
+                                                            <button className="btn btn-sm btn-gradient" onClick={async()=>{
                                                                 try{
                                                                     const res=await fetch(`${API_URL}/comment/${c.id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':`Bearer ${user.token}`},body:JSON.stringify({text:editingText})});
                                                                     if(!res.ok) throw new Error('Fail');
@@ -255,7 +255,7 @@ const TaskViewerPage = () => {
                                     onChange={e => setNewComment(e.target.value)}
                                 />
                                 <div className="text-right">
-                                    <button type="submit" className="btn btn-primary" disabled={!newComment.trim()}>Отправить</button>
+                                    <button type="submit" className="btn btn-gradient" disabled={!newComment.trim()}>Отправить</button>
                                 </div>
                             </form>
                         </>

@@ -5,7 +5,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { PlusIcon, PencilIcon, TrashIcon } from '../components/Icons'; // Assuming you have icons
 import { toast } from 'react-hot-toast';
 
-const API_URL = 'https://learn-anything.ru/api/v1'; // Or your backend URL
+const API_URL = 'http://localhost:8000/api/v1'; // Base API URL for backend endpoints
 
 // --- Sub-components for the Editor ---
 
@@ -176,13 +176,24 @@ const TaskEditorPage = () => {
         const url = isEditing ? `${API_URL}/tasks/${taskId}` : `${API_URL}/tasks/`;
         const method = isEditing ? 'PUT' : 'POST';
         
-        // Ensure deadline is in ISO format if it exists
+        // --- Безопасная обработка дедлайна ---
+        let deadlineISO = null;
+        if (task.deadline) {
+            const parsed = new Date(task.deadline);
+            if (isNaN(parsed.getTime())) {
+                setLoading(false);
+                toast.error('Некорректная дата дедлайна.');
+                return; // Прерываем отправку, чтобы не упасть RangeError
+            }
+            deadlineISO = parsed.toISOString();
+        }
+
         const taskData = {
             ...task,
             progress: Number(task.progress),
-            deadline: task.deadline ? new Date(task.deadline).toISOString() : null,
+            deadline: deadlineISO, // может быть null, корректная строка ISO или undefined
         };
-
+        
         // For PUT, only send non-null fields
         const payload = isEditing ? Object.fromEntries(Object.entries(taskData).filter(([_, v]) => v != null)) : taskData;
 
@@ -199,7 +210,21 @@ const TaskEditorPage = () => {
             
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to save the task');
+
+                // Обработка валидационной ошибки даты в будущем
+                if (errorData && Array.isArray(errorData.detail)) {
+                    const firstErr = errorData.detail[0];
+                    if (firstErr?.type === 'datetime_future') {
+                        toast.error('Дедлайн должен быть в будущем.');
+                        setLoading(false);
+                        return; // прерываем дальнейшую обработку
+                    }
+                }
+
+                // Другие ошибки
+                toast.error(typeof errorData.detail === 'string' ? errorData.detail : 'Не удалось сохранить');
+                setLoading(false);
+                return;
             }
             
             toast.success(`Задача ${isEditing ? 'обновлена' : 'создана'}`);
@@ -213,7 +238,6 @@ const TaskEditorPage = () => {
     };
 
     if (loading && !task.title) return <LoadingSpinner />;
-    if (error) return <div className="text-red-500">Произошла ошибка. Пожалуйста, попробуйте позже.</div>;
 
     return (
         <div>
@@ -251,12 +275,15 @@ const TaskEditorPage = () => {
                     </select>
                 </div>
                 <div>
-                    <label htmlFor="progress" className="label">Прогресс ({task.progress}%)</label>
+                    <label htmlFor="progress" className="label flex justify-between">
+                        <span>Прогресс</span>
+                        <span className="w-12 text-right">{task.progress}%</span>
+                    </label>
                     <input type="range" name="progress" id="progress" min="0" max="100" value={task.progress} onChange={handleChange} className="range range-primary" />
                 </div>
                 <div className="flex justify-end gap-4">
-                    <button type="button" onClick={() => navigate(-1)} className="btn btn-ghost">Отмена</button>
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                    <button type="button" onClick={() => navigate(-1)} className="btn btn-gradient-secondary">Отмена</button>
+                    <button type="submit" className="btn btn-gradient" disabled={loading}>
                         {loading ? 'Сохранение...' : (isEditing ? 'Сохранить' : 'Создать')}
                     </button>
                 </div>
