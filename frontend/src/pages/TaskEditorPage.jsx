@@ -5,7 +5,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { PlusIcon, PencilIcon, TrashIcon } from '../components/Icons'; // Assuming you have icons
 import { toast } from 'react-hot-toast';
 
-const API_URL = 'http://localhost:8000/api/v1'; // Base API URL for backend endpoints
+const API_URL = 'http://learn-anything.ru:8000/api/v1'; // Or your backend URL
 
 // --- Sub-components for the Editor ---
 

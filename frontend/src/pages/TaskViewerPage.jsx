@@ -4,7 +4,7 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { AuthContext } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
-const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = 'http://learn-anything.ru:8000/api/v1'; // Or your backend URL
 
 const TaskViewerPage = () => {
     const { taskId } = useParams();

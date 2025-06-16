@@ -4,7 +4,7 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { AuthContext } from '../contexts/AuthContext';
 import { PlusIcon, PencilIcon, TrashIcon } from '../components/Icons'; // Assuming you have icons
 
-const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = 'http://learn-anything.ru:8000/api/v1'; // Or your backend URL
 
 // --- Sub-components for the Editor ---
 
