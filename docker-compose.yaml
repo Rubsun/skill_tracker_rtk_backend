@@ -6,6 +6,9 @@ services:
     container_name: "skill_tracker-skill_tracker_frontend"
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       skill_tracker_service:
         condition: service_started
