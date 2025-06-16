@@ -20,6 +20,7 @@ services:
     container_name: "skill_tracker-skill_tracker_service"
     environment:
       SKILL_TRACKER_CONFIG_PATH: "./configs/app.docker.toml"
+
     ports:
       - "8000:8000"
     depends_on:

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import { AuthContext } from '../contexts/AuthContext';
 
-const API_URL = 'http://learn-anything.ru:8000/api/v1'; // Or your backend URL
+const API_URL = 'https://learn-anything.ru/api/v1'; // Or your backend URL
 
 const EmployeeDashboardPage = () => {
     const [tasks, setTasks] = useState([]);
