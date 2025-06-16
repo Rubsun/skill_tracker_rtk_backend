@@ -1,0 +1,102 @@
+services:
+  skill_tracker_frontend:
+    build:
+      context: frontend/
+      dockerfile: DockerfileDev
+    container_name: "skill_tracker-skill_tracker_frontend"
+    ports:
+      - "80:80"
+    depends_on:
+      skill_tracker_service:
+        condition: service_started
+
+  skill_tracker_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "skill_tracker-skill_tracker_service"
+    environment:
+      SKILL_TRACKER_CONFIG_PATH: "./configs/app.docker.toml"
+
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      db_migrations:
+        condition: service_completed_successfully
+
+  db_migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "skill_tracker-db_migrations"
+    environment:
+      SKILL_TRACKER_CONFIG_PATH: "./configs/app.docker.toml"
+    command: "uv run alembic upgrade head"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16.0-alpine3.18
+    container_name: "skill_tracker-db"
+    env_file:
+      - configs/db.env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    ports:
+      - "9080:9080"
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail-config.yaml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    privileged: true
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheusdata:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - grafanadata:/var/lib/grafana
+
+volumes:
+  postgres_data:
+  grafanadata:
+  prometheusdata:
