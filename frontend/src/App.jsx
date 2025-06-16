@@ -18,7 +18,7 @@ import LoadingSpinner from './components/Common/LoadingSpinner';
 // --- Layout Component ---
 import MainLayout from './components/Common/Layouts/MainLayout';
 
-const API_URL = 'http://localhost:8000/api/v1'; // Or your backend URL
+const API_URL = 'https://learn-anything.ru/api/v1'; // Or your backend URL
 
 const useAuth = () => {
     const getInitialUser = () => {
